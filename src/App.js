@@ -1,0 +1,33 @@
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import React, { useEffect } from 'react';
+
+import store from './store';
+import { getSettings } from './actions/settings';
+import { getDatastore } from './actions/datastore';
+
+import Forecast from './components/pages/Forecast';
+
+import './App.css';
+
+const App = () => {
+
+  useEffect(() => {
+    store.dispatch(getSettings());
+    store.dispatch(getDatastore());
+  }, []);
+
+  return (
+    <Provider store={store}>
+      {/* <Forecast /> */}
+      <Router>
+        <Switch>
+          {/* <Route exact path="/" component={Dashboard} /> */}
+          <Route exact path="/" component={Forecast} />
+        </Switch>
+      </Router>
+    </Provider>
+  )
+}
+
+export default App;
