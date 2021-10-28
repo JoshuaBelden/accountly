@@ -1,0 +1,2 @@
+# accountaly
+Personal Finance Software
