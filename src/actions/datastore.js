@@ -1,12 +1,9 @@
 import { DATASTORE_LOADED } from './types';
-
-const datastore = {
-    accounts: []
-};
+import data from '../data/data.json';
 
 export const getDatastore = () => async dispatch => {
     dispatch({
         type: DATASTORE_LOADED,
-        payload: datastore
+        payload: data
     });
 };

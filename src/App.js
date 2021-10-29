@@ -6,7 +6,7 @@ import store from './store';
 import { getSettings } from './actions/settings';
 import { getDatastore } from './actions/datastore';
 
-import Forecast from './components/pages/Forecast';
+import Transactions from './components/pages/Transactions';
 
 import './App.css';
 
@@ -19,11 +19,10 @@ const App = () => {
 
   return (
     <Provider store={store}>
-      {/* <Forecast /> */}
       <Router>
         <Switch>
           {/* <Route exact path="/" component={Dashboard} /> */}
-          <Route exact path="/" component={Forecast} />
+          <Route exact path="/" component={Transactions} />
         </Switch>
       </Router>
     </Provider>
