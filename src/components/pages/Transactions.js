@@ -3,14 +3,40 @@ import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
 import moment from 'moment';
 
+import { importStatement } from '../../actions/datastore';
+
 import Footer from '../layout/Footer';
 import Header from '../layout/Header';
+import { withRouter } from 'react-router';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {currency: 'USD', style: 'currency'});
 
 class Transactions extends Component {
 
+    constructor(props) {
+        super(props);
+        this.state = {
+            importFile: null
+        };
+    }
+
+    onFileChange = event => {
+        this.setState({
+            importFile: event.target.files[0],
+            uploaded: false
+        })
+    }
+
+    onImportClick = async event => {
+        if (!this.state.importFile) {
+            return;
+        }
+        this.props.importStatement(this.props.datastore, await this.state.importFile.text());
+        this.forceUpdate();
+    }
+
     render() {
+        console.debug('[jcbdbg] Transactions::render this.props.datastore.transactions', this.props.datastore.transactions);
         if (!this.props.datastore.transactions) {
             return <div>No Transactions</div>
         }
@@ -19,8 +45,13 @@ class Transactions extends Component {
             <Fragment>
                 <Header />
                 <section className="container">
-                    <section className="overview">
-
+                    <section className="controls">
+                        <section className="import">
+                            <input type="file" onChange={this.onFileChange} />
+                            <button onClick={this.onImportClick}>
+                                Import Statement
+                            </button>
+                        </section>
                     </section>
                     <section className="transactions">
                         <table>
@@ -58,6 +89,7 @@ class Transactions extends Component {
 }
 
 Transactions.propTypes = {
+    importStatement: PropTypes.func.isRequired,
     settings: PropTypes.object.isRequired,
     datastore: PropTypes.object.isRequired
 };
@@ -69,4 +101,8 @@ const mapStateToProps = state => {
     };
 };
 
-export default connect(mapStateToProps, null)(Transactions);
+const mapDispatchToProps = dispatch => ({
+    importStatement: (datastore, statement) => dispatch(importStatement(datastore, statement))
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(withRouter(Transactions));
