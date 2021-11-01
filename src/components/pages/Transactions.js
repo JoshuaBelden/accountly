@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
 import moment from 'moment';
 
-import { importStatement } from '../../actions/datastore';
+import { importStatement } from '../../actions/transactions';
 
 import Footer from '../layout/Footer';
 import Header from '../layout/Header';
@@ -31,16 +31,10 @@ class Transactions extends Component {
         if (!this.state.importFile) {
             return;
         }
-        this.props.importStatement(this.props.datastore, await this.state.importFile.text());
-        this.forceUpdate();
+        this.props.importStatement(await this.state.importFile.text());
     }
 
     render() {
-        console.debug('[jcbdbg] Transactions::render this.props.datastore.transactions', this.props.datastore.transactions);
-        if (!this.props.datastore.transactions) {
-            return <div>No Transactions</div>
-        }
-
         return (
             <Fragment>
                 <Header />
@@ -65,7 +59,7 @@ class Transactions extends Component {
                                 </tr>
                             </thead>
                             <tbody>
-                                {this.props.datastore.transactions.map(t => {
+                                {this.props.transactions.map(t => {
                                     return <Fragment key={t.id}>
                                         <tr>
                                             <td></td>
@@ -90,19 +84,17 @@ class Transactions extends Component {
 
 Transactions.propTypes = {
     importStatement: PropTypes.func.isRequired,
-    settings: PropTypes.object.isRequired,
-    datastore: PropTypes.object.isRequired
+    transactions: PropTypes.array.isRequired
 };
 
 const mapStateToProps = state => {
     return {
-        settings: state.settings,
-        datastore: state.datastore
+        transactions: state.transactionData.transactions
     };
 };
 
 const mapDispatchToProps = dispatch => ({
-    importStatement: (datastore, statement) => dispatch(importStatement(datastore, statement))
+    importStatement: (statement) => dispatch(importStatement(statement))
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(withRouter(Transactions));
