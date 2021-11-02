@@ -5,7 +5,6 @@ const initialState = {
 };
 
 export default function reduce(state = initialState, action) {
-    console.debug('[jcbdbg] datastore::reduce state, action', state, action);
     const { type, payload } = action;
     switch (type) {
         case TRANSACTIONS_LOADED:

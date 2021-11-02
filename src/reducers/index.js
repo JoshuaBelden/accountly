@@ -1,10 +1,8 @@
 import { combineReducers } from 'redux';
 import transactionData from './transactions';
-//import settingsData from './settings';
-//import datastoreData from './datastore';
+import budgetData from './budget';
 
 export default combineReducers({
-    // settingsData,
-    // datastoreData,
+    budgetData,
     transactionData
 });

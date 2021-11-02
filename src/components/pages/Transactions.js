@@ -31,7 +31,7 @@ class Transactions extends Component {
         if (!this.state.importFile) {
             return;
         }
-        this.props.importStatement(await this.state.importFile.text());
+        this.props.importStatement(this.props.budget, await this.state.importFile.text());
     }
 
     render() {
@@ -84,17 +84,19 @@ class Transactions extends Component {
 
 Transactions.propTypes = {
     importStatement: PropTypes.func.isRequired,
+    budget: PropTypes.object.isRequired,
     transactions: PropTypes.array.isRequired
 };
 
 const mapStateToProps = state => {
     return {
+        budget: state.budgetData.budget,
         transactions: state.transactionData.transactions
     };
 };
 
 const mapDispatchToProps = dispatch => ({
-    importStatement: (statement) => dispatch(importStatement(statement))
+    importStatement: (budget, statement) => dispatch(importStatement(budget, statement))
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(withRouter(Transactions));

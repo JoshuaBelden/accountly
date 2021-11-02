@@ -3,9 +3,9 @@ import { Provider } from 'react-redux';
 import React, { useEffect } from 'react';
 
 import store from './store';
+import { getBudget } from './actions/budget';
 import { getTransactions } from './actions/transactions';
 // import { getSettings } from './actions/settings';
-// import { getDatastore } from './actions/datastore';
 
 import Transactions from './components/pages/Transactions';
 
@@ -14,6 +14,7 @@ import './App.css';
 const App = () => {
 
   useEffect(() => {
+    store.dispatch(getBudget());
     store.dispatch(getTransactions());
   }, []);
 
