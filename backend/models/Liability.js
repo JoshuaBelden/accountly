@@ -1,7 +1,7 @@
 const { ObjectId } = require('mongoose');
 const mongoose = require('mongoose');
 
-const AccountSchema = new mongoose.Schema({
+const LiabilitySchema = new mongoose.Schema({
     id: {
         type: ObjectId,
         required: true
@@ -11,16 +11,18 @@ const AccountSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    accountNumber: {
-        type: String
-    },
-    routingNumber: {
-        type: String
-    },
     balance: {
         type: Number,
+        required: true
+    },
+    due: {
+        type: Number,
+        required: true
+    },
+    autoWithdrawal: {
+        type: Boolean,
         required: true
     }
 });
 
-module.exports = Accounts = mongoose.model('accounts', AccountSchema);
+module.exports = Liabilities = mongoose.model('liabilities', LiabilitySchema);

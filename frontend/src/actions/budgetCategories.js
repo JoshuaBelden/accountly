@@ -1,18 +1,18 @@
 import axios from "axios"
-import { ACCOUNTS_RETRIEVED, ACCOUNTS_FAILED } from "./types";
+import { BUDGET_CATEGORY_RETRIEVED, BUDGET_CATEGORY_FAILED } from "./types";
 import { createAlert } from './alert';
 
-export const getAccounts = () => async dispatch => {
+export const getBudgetCategories = () => async dispatch => {
     try {
-        const res = await axios.get('/api/accounts');
+        const res = await axios.get('/api/budgetcategories');
         dispatch({
-            type: ACCOUNTS_RETRIEVED,
+            type: BUDGET_CATEGORY_RETRIEVED,
             payload: res.data
         });
     } catch (error) {
         if (error.response) {
             dispatch({
-                type: ACCOUNTS_FAILED,
+                type: BUDGET_CATEGORY_FAILED,
                 payload: {
                     message: error.response.statusText,
                     status: error.response.status
@@ -20,7 +20,7 @@ export const getAccounts = () => async dispatch => {
             });
         } else {
             dispatch({
-                type: ACCOUNTS_FAILED,
+                type: BUDGET_CATEGORY_FAILED,
                 payload: {
                     message: error
                 }
@@ -29,7 +29,7 @@ export const getAccounts = () => async dispatch => {
     }
 }
 
-export const updateAccount = (account) => async dispatch => {
+export const updateBudgetCategory = (budgetCategory) => async dispatch => {
     try {
         const config = {
             headers: {
@@ -37,14 +37,14 @@ export const updateAccount = (account) => async dispatch => {
             }
         };
 
-        await axios.post('api/accounts', account, config);
+        await axios.post('api/budgetcategories', budgetCategory, config);
         
-        dispatch(createAlert('Account has been updated.', 'success'));
-        dispatch(getAccounts());
+        dispatch(createAlert('Budget category has been updated.', 'success'));
+        dispatch(getBudgetCategories());
     } catch (error) {
         if (error.response) {
             dispatch({
-                type: ACCOUNTS_FAILED,
+                type: BUDGET_CATEGORY_FAILED,
                 payload: {
                     message: error.response.statusText,
                     status: error.response.status

@@ -7,7 +7,7 @@ import Login from './Login';
 import NavBar from '../layout/Navbar';
 import Profile from './Profile';
 import Register from './Register';
-import Accounts from './Accounts';
+import Settings from './Settings';
 
 export const Page = () => (
     <Fragment>
@@ -23,7 +23,7 @@ export const Page = () => (
                 <Route exact path="/login" component={Login} />
                 <Route exact path="/profile/:email" component={Profile} />
                 <Route exact path="/edit-profile" component={EditProfile} />
-                <Route exact path="/accounts" component={Accounts} />
+                <Route exact path="/settings" component={Settings} />
             </Switch>
             <Footer />
         </section>

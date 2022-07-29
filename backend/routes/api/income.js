@@ -6,13 +6,13 @@ const jwt = require('jsonwebtoken');
 const gravatar = require('gravatar');
 const authSecret = require('../../config/auth-secret');
 const auth = require('../../middleware/auth');
-const Account = require('../../models/Account');
+const Income = require('../../models/Income');
 
 const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
     try {
-        const records = await Account.find();
+        const records = await Income.find();
         if (!records) {
             return res.status(404).json({ message: 'There are no records.' });
         }
@@ -26,38 +26,35 @@ router.get('/', auth, async (req, res) => {
 
 router.post('/', [
     check('name', 'A name is required').exists(),
-    check('accountNumber', 'An account number is required').exists(),
-    check('balance', 'A balance is required').isNumeric()],
+    check('payPeriods', 'Pay periods is required').exists(),
+    check('amount', 'An amount is required').isNumeric()],
     auth, async (req, res) => {
 
         const {
             id = mongoose.Types.ObjectId(),
             name,
-            accountNumber,
-            routingNumber,
-            balance
+            payPeriods,
+            amount
         } = req.body;
 
         try {
-            let record = new Account({
+            let record = new Income({
                 id,
                 name,
-                accountNumber,
-                routingNumber,
-                balance
+                payPeriods,
+                amount
             });
 
             if (!req.body.id) {
                 await record.save();
             } else {
-                record = await Account.findOneAndUpdate(
+                record = await Income.findOneAndUpdate(
                     { id },
                     { $set: {
                         id,
                         name,
-                        accountNumber,
-                        routingNumber,
-                        balance
+                        payPeriods,
+                        amount
                     }},
                     { new: true }
                 );

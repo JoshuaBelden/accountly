@@ -24,6 +24,12 @@ app.use('/api/users', require('./routes/api/users'));
 app.use('/api/auth', require('./routes/api/auth'));
 app.use('/api/profile', require('./routes/api/profile'));
 app.use('/api/accounts', require('./routes/api/accounts'));
+app.use('/api/assets', require('./routes/api/assets'));
+app.use('/api/budgetcategories', require('./routes/api/budgetCategories'));
+app.use('/api/expenditures', require('./routes/api/expenditures'));
+app.use('/api/income', require('./routes/api/income'));
+app.use('/api/liabilities', require('./routes/api/liabilities'));
+app.use('/api/transactions', require('./routes/api/transactions'));
 
 connectDB();
 

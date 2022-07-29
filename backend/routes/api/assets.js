@@ -6,13 +6,13 @@ const jwt = require('jsonwebtoken');
 const gravatar = require('gravatar');
 const authSecret = require('../../config/auth-secret');
 const auth = require('../../middleware/auth');
-const Account = require('../../models/Account');
+const Asset = require('../../models/Asset');
 
 const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
     try {
-        const records = await Account.find();
+        const records = await Asset.find();
         if (!records) {
             return res.status(404).json({ message: 'There are no records.' });
         }
@@ -26,38 +26,31 @@ router.get('/', auth, async (req, res) => {
 
 router.post('/', [
     check('name', 'A name is required').exists(),
-    check('accountNumber', 'An account number is required').exists(),
-    check('balance', 'A balance is required').isNumeric()],
+    check('value', 'A value is required').isNumeric()],
     auth, async (req, res) => {
 
         const {
             id = mongoose.Types.ObjectId(),
             name,
-            accountNumber,
-            routingNumber,
-            balance
+            value
         } = req.body;
 
         try {
-            let record = new Account({
+            let record = new Asset({
                 id,
                 name,
-                accountNumber,
-                routingNumber,
-                balance
+                value
             });
 
             if (!req.body.id) {
                 await record.save();
             } else {
-                record = await Account.findOneAndUpdate(
+                record = await Asset.findOneAndUpdate(
                     { id },
                     { $set: {
                         id,
                         name,
-                        accountNumber,
-                        routingNumber,
-                        balance
+                        value
                     }},
                     { new: true }
                 );

@@ -7,7 +7,7 @@ import { loadUser } from './actions/auth';
 import setAuthToken from './utils/setAuthToken';
 import store from './store';
 
-import { Dashboard } from './components/pages/Dashboard';
+import Dashboard from './components/pages/Dashboard';
 import { Page } from './components/pages/Page';
 import AlertList from './components/layout/Alert';
 

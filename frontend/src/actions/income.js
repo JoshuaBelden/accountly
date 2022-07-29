@@ -1,18 +1,18 @@
 import axios from "axios"
-import { ACCOUNTS_RETRIEVED, ACCOUNTS_FAILED } from "./types";
+import { INCOME_RETRIEVED, INCOME_FAILED } from "./types";
 import { createAlert } from './alert';
 
-export const getAccounts = () => async dispatch => {
+export const getIncome = () => async dispatch => {
     try {
-        const res = await axios.get('/api/accounts');
+        const res = await axios.get('/api/income');
         dispatch({
-            type: ACCOUNTS_RETRIEVED,
+            type: INCOME_RETRIEVED,
             payload: res.data
         });
     } catch (error) {
         if (error.response) {
             dispatch({
-                type: ACCOUNTS_FAILED,
+                type: INCOME_FAILED,
                 payload: {
                     message: error.response.statusText,
                     status: error.response.status
@@ -20,7 +20,7 @@ export const getAccounts = () => async dispatch => {
             });
         } else {
             dispatch({
-                type: ACCOUNTS_FAILED,
+                type: INCOME_FAILED,
                 payload: {
                     message: error
                 }
@@ -29,7 +29,7 @@ export const getAccounts = () => async dispatch => {
     }
 }
 
-export const updateAccount = (account) => async dispatch => {
+export const updateIncome = (income) => async dispatch => {
     try {
         const config = {
             headers: {
@@ -37,14 +37,14 @@ export const updateAccount = (account) => async dispatch => {
             }
         };
 
-        await axios.post('api/accounts', account, config);
+        await axios.post('api/income', income, config);
         
-        dispatch(createAlert('Account has been updated.', 'success'));
-        dispatch(getAccounts());
+        dispatch(createAlert('Income has been updated.', 'success'));
+        dispatch(getIncome());
     } catch (error) {
         if (error.response) {
             dispatch({
-                type: ACCOUNTS_FAILED,
+                type: INCOME_FAILED,
                 payload: {
                     message: error.response.statusText,
                     status: error.response.status
@@ -52,7 +52,7 @@ export const updateAccount = (account) => async dispatch => {
             });
         } else {
             dispatch({
-                type: ACCOUNTS_FAILED,
+                type: INCOME_FAILED,
                 payload: {
                     message: error
                 }

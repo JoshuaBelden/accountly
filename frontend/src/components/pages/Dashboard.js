@@ -1,9 +1,14 @@
 import React, { Fragment } from 'react';
+import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 
 import Navbar from '../layout/Navbar';
 import { Footer } from '../layout/Footer';
 
-export const Dashboard = () => {
+const Dashboard = ({
+    authData: { user }
+}) => {
+
     return (
         <Fragment>
             <div className="page-wrapper">
@@ -70,3 +75,13 @@ export const Dashboard = () => {
         </Fragment>
     );
 };
+
+Dashboard.propTypes = {
+    authData: PropTypes.object.isRequired
+};
+
+const mapStateToProps = state => ({
+    authData: state.authData
+});
+
+export default connect(mapStateToProps)(Dashboard);

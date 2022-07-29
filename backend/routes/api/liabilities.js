@@ -6,13 +6,13 @@ const jwt = require('jsonwebtoken');
 const gravatar = require('gravatar');
 const authSecret = require('../../config/auth-secret');
 const auth = require('../../middleware/auth');
-const Account = require('../../models/Account');
+const Liability = require('../../models/Liability');
 
 const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
     try {
-        const records = await Account.find();
+        const records = await Liability.find();
         if (!records) {
             return res.status(404).json({ message: 'There are no records.' });
         }
@@ -26,38 +26,39 @@ router.get('/', auth, async (req, res) => {
 
 router.post('/', [
     check('name', 'A name is required').exists(),
-    check('accountNumber', 'An account number is required').exists(),
-    check('balance', 'A balance is required').isNumeric()],
+    check('balance', 'A balance is required').isNumeric(),
+    check('due', 'Due is required').isNumeric(),
+    check('autoWithdrawal', 'Auto withdrawal is required').isBoolean()],
     auth, async (req, res) => {
 
         const {
             id = mongoose.Types.ObjectId(),
             name,
-            accountNumber,
-            routingNumber,
-            balance
+            balance,
+            due,
+            autoWithdrawal
         } = req.body;
 
         try {
-            let record = new Account({
+            let record = new Liability({
                 id,
                 name,
-                accountNumber,
-                routingNumber,
-                balance
+                balance,
+                due,
+                autoWithdrawal
             });
 
             if (!req.body.id) {
                 await record.save();
             } else {
-                record = await Account.findOneAndUpdate(
+                record = await Liability.findOneAndUpdate(
                     { id },
                     { $set: {
                         id,
                         name,
-                        accountNumber,
-                        routingNumber,
-                        balance
+                        balance,
+                        due,
+                        autoWithdrawal
                     }},
                     { new: true }
                 );

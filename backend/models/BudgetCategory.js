@@ -1,7 +1,7 @@
 const { ObjectId } = require('mongoose');
 const mongoose = require('mongoose');
 
-const AccountSchema = new mongoose.Schema({
+const BudgetItemSchema = new mongoose.Schema({
     id: {
         type: ObjectId,
         required: true
@@ -11,16 +11,10 @@ const AccountSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    accountNumber: {
-        type: String
-    },
-    routingNumber: {
-        type: String
-    },
-    balance: {
+    amount: {
         type: Number,
         required: true
     }
 });
 
-module.exports = Accounts = mongoose.model('accounts', AccountSchema);
+module.exports = BudgetItems = mongoose.model('budgetitems', BudgetItemSchema);

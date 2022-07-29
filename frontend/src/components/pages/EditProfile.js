@@ -47,7 +47,7 @@ const EditProfile = ({
                 youtube: myProfile.social ? myProfile.social.youtube : '',
             });
         }
-    }, [loading]
+    }, [loading, getMyProfile, myProfile, user]
     );
 
     const [formData, setFormData] = useState({

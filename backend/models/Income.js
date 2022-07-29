@@ -1,7 +1,7 @@
 const { ObjectId } = require('mongoose');
 const mongoose = require('mongoose');
 
-const AccountSchema = new mongoose.Schema({
+const IncomeSchema = new mongoose.Schema({
     id: {
         type: ObjectId,
         required: true
@@ -11,16 +11,14 @@ const AccountSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    accountNumber: {
-        type: String
+    payPeriods: {
+        type: String,
+        required: true
     },
-    routingNumber: {
-        type: String
-    },
-    balance: {
+    amount: {
         type: Number,
         required: true
     }
 });
 
-module.exports = Accounts = mongoose.model('accounts', AccountSchema);
+module.exports = Income = mongoose.model('Income', IncomeSchema);

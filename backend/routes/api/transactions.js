@@ -6,13 +6,13 @@ const jwt = require('jsonwebtoken');
 const gravatar = require('gravatar');
 const authSecret = require('../../config/auth-secret');
 const auth = require('../../middleware/auth');
-const Account = require('../../models/Account');
+const Transaction = require('../../models/Transaction');
 
 const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
     try {
-        const records = await Account.find();
+        const records = await Transaction.find();
         if (!records) {
             return res.status(404).json({ message: 'There are no records.' });
         }
@@ -25,39 +25,36 @@ router.get('/', auth, async (req, res) => {
 });
 
 router.post('/', [
-    check('name', 'A name is required').exists(),
-    check('accountNumber', 'An account number is required').exists(),
-    check('balance', 'A balance is required').isNumeric()],
+    check('description', 'A description is required').exists(),
+    check('amount', 'An amount is required').isNumeric(),
+    check('date', 'A date is required').isDate()],
     auth, async (req, res) => {
 
         const {
             id = mongoose.Types.ObjectId(),
-            name,
-            accountNumber,
-            routingNumber,
-            balance
+            description,
+            amount,
+            date
         } = req.body;
 
         try {
-            let record = new Account({
+            let record = new Transaction({
                 id,
-                name,
-                accountNumber,
-                routingNumber,
-                balance
+                description,
+                amount,
+                date
             });
 
             if (!req.body.id) {
                 await record.save();
             } else {
-                record = await Account.findOneAndUpdate(
+                record = await Transaction.findOneAndUpdate(
                     { id },
                     { $set: {
                         id,
-                        name,
-                        accountNumber,
-                        routingNumber,
-                        balance
+                        description,
+                        amount,
+                        date
                     }},
                     { new: true }
                 );

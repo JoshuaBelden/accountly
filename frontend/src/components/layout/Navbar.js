@@ -21,7 +21,7 @@ const Navbar = ({ auth: { isAuthenticated, loading, user }, logout }) => {
 
     const authLinks = (
         <ul>
-            <li><Link to={'/accounts'}>Accounts</Link></li>
+            <li><Link to={'/settings'}>Settings</Link></li>
             <li><Link to={'/budget'}>Budget</Link></li>
             <li><Link to={'/spending'}>Spending</Link></li> | 
             <li><a href="mailto:accountly@joshuabelden.com">Contact</a></li>
