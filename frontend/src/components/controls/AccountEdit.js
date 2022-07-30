@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { connect } from 'react-redux';
-import { updateAccount } from '../../actions/accounts';
+import { deleteAccount, updateAccount } from '../../actions/accounts';
 
-function AccountEdit({ account = {}, updateAccount }) {
+function AccountEdit({ account = {}, updateAccount, deleteAccount }) {
     const [name, setName] = useState(account.name);
     const [accountNumber, setAccountNumber] = useState(account.accountNumber);
     const [routingNumber, setRoutingNumber] = useState(account.routingNumber);
@@ -37,33 +37,42 @@ function AccountEdit({ account = {}, updateAccount }) {
         });
     };
 
-    return (
-        <div>
-            <form className="form" onSubmit={handleSubmit}>
-                <div className="form-group">
-                    <label className="form-text">Name:</label>
-                    <input type="text" id="name" value={name} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label className="form-text">Account Number:</label>
-                    <input type="text" id="accountNumber" value={accountNumber} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label className="form-text">Routing Number:</label>
-                    <input type="text" id="routingNumber" value={routingNumber || ''} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label className="form-text">Balance:</label>
-                    <input type="text" id="balance" value={balance} onChange={handleChange} />
-                </div>
+    const handleDelete = event => {
+        deleteAccount(account.id);
+    }
 
-                <input type="hidden" id="id" value={account.id} />
-                <input type="submit" value="Save" className="btn btn-primary my-1" />
-            </form>
-        </div>
-    )
+    return (
+      <div>
+        <form className="form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <input type="text" id="name" value={name} onChange={handleChange} placeholder="Name" required />
+            <input
+              type="text"
+              id="accountNumber"
+              value={accountNumber}
+              onChange={handleChange}
+              placeholder="Account Number"
+              required
+            />
+            <input
+              type="text"
+              id="routingNumber"
+              value={routingNumber || ''}
+              onChange={handleChange}
+              placeholder="Routing Number"
+              required
+            />
+            <input type="text" id="balance" value={balance} onChange={handleChange} placeholder="Balance" required />
+            <input type="submit" value="Save" className="btn btn-primary my-1" />
+            {account.id && <input type="button" value="Delete" onClick={handleDelete} className="btn btn-primary my-1" />}
+          </div>
+
+          <input type="hidden" id="id" value={account.id} />
+        </form>
+      </div>
+    );
 }
 
 const mapStateToProps = state => ({})
 
-export default connect(mapStateToProps, { updateAccount })(AccountEdit);
+export default connect(mapStateToProps, { updateAccount, deleteAccount })(AccountEdit);

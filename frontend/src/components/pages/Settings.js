@@ -63,30 +63,35 @@ const Settings = ({
                 <article className="articles">
                     {accounts && accounts.map(account => <AccountEdit key={account.id} account={account} />)}
                 </article>
+                <hr />
                 <AccountEdit />
 
                 <h2 className="large text-primary">Income</h2>
                 <article className="articles">
                     {income && income.map(i => <IncomeEdit key={i.id} income={i} />)}
                 </article>
+                <hr />
                 <IncomeEdit />
 
                 <h2 className="large text-primary">Liabilities</h2>
                 <article className="articles">
                     {liabilities && liabilities.map(liability => <LiabilityEdit key={liability.id} liability={liability} />)}
                 </article>
+                <hr />
                 <LiabilityEdit />
 
                 <h2 className="large text-primary">Expenditures</h2>
                 <article className="articles">
                     {expenditures && expenditures.map(expenditure => <ExpenditureEdit key={expenditure.id} expenditure={expenditure} />)}
                 </article>
+                <hr />
                 <ExpenditureEdit />
 
                 <h2 className="large text-primary">Assets</h2>
                 <article className="articles">
                     {assets && assets.map(asset => <AssetEdit key={asset.id} asset={asset} />)}
                 </article>
+                <hr />
                 <AssetEdit />
             </section>
         </Fragment>;

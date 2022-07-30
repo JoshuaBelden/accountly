@@ -158,6 +158,8 @@ h2 {
 	font-size: 2.25em;
 	line-height: 1.5em;
 	letter-spacing: -0.035em;
+	color: rgb(53, 89, 143);
+	margin: 1em 0em 0 0;
 }
 
 h3 {
@@ -198,8 +200,8 @@ sup {
 
 hr {
 	border: 0;
-	border-bottom: solid 2px #e5e5e5;
-	margin: 2em 0;
+	border-bottom: solid 2px #dbdbdb;
+	margin: 0 0;
 }
 
 hr.major {
@@ -1612,7 +1614,6 @@ code {
 .container {
 	margin: 0 auto;
 	max-width: calc(100% - 5em);
-	width: 60em;
 }
 
 .container.xsmall {
@@ -1703,12 +1704,12 @@ header.major p {
 /* Form */
 
 form {
-	margin: 0 0 2em 0;
+	margin: 0 0 0 0;
 }
 
 label {
 	color: #646464;
-	display: block;
+	display: inline;
 	font-size: 0.9em;
 	font-weight: 300;
 	margin: 0.5em 0.2em 0.5em 0em;
@@ -1729,14 +1730,14 @@ input[type="text"], input[type="password"], input[type="email"], select, textare
 	appearance: none;
 	background-color: #f8f8f8;
 	border-radius: 6px;
-	border: solid 1px #e5e5e5;
+	border: solid 1px #d2d3d4;
 	color: inherit;
-	display: block;
+	display: inline;
 	font-weight: 500;
 	outline: 0;
-	padding: 1em 1em;
+	padding: .25em .5em;
 	text-decoration: none;
-	width: 100%;
+	/* width: 100%; */
 }
 
 input[type="text"]:invalid, input[type="password"]:invalid, input[type="email"]:invalid, select:invalid, textarea:invalid {
@@ -1744,8 +1745,8 @@ input[type="text"]:invalid, input[type="password"]:invalid, input[type="email"]:
 }
 
 input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus, select:focus, textarea:focus {
-	border-color: #e89980;
-	box-shadow: 0 0 0 2px #e89980;
+	border-color: #040404;
+	box-shadow: 0 0 0 2px #304676;
 }
 
 select {
@@ -2404,7 +2405,7 @@ input[type="submit"], input[type="reset"], input[type="button"], .button {
 	-webkit-transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
 	-ms-transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
 	transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-	background-color: #666;
+	background-color: rgb(148, 148, 149);
 	border-radius: 6px;
 	border: 0;
 	color: #ffffff;
@@ -2420,7 +2421,7 @@ input[type="submit"], input[type="reset"], input[type="button"], .button {
 }
 
 input[type="submit"]:hover, input[type="reset"]:hover, input[type="button"]:hover, .button:hover {
-	background-color: #737373;
+	background-color: #428940;
 }
 
 input[type="submit"]:active, input[type="reset"]:active, input[type="button"]:active, .button:active {

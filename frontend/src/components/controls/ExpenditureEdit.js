@@ -41,23 +41,13 @@ function ExpenditureEdit({ expenditure = {}, updateExpenditure }) {
         <div>
             <form className="form" onSubmit={handleSubmit}>
                 <div className="form-group">
-                    <label className="form-text">Name:</label>
-                    <input type="text" id="name" value={name} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label className="form-text">Amount:</label>
-                    <input type="text" id="amount" value={amount} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label className="form-text">Due:</label>
-                    <input type="text" id="due" value={due} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label className="form-text">Auto Withdrawal:</label>
-                    <input type="text" id="autoWithdrawal" value={autoWithdrawal} onChange={handleChange} />
+                    <input type="text" id="name" value={name} onChange={handleChange} placeholder="Name" required />
+                    <input type="text" id="amount" value={amount} onChange={handleChange} placeholder="Amount" required />
+                    <input type="text" id="due" value={due} onChange={handleChange} placeholder="Due" required />
+                    <input type="checkbox" id="autoWithdrawal" value={autoWithdrawal} onChange={handleChange} />
+                    <input type="submit" value="Save" className="btn btn-primary my-1" />
                 </div>
                 <input type="hidden" id="id" value={expenditure.id} />
-                <input type="submit" value="Save" className="btn btn-primary my-1" />
             </form>
         </div>
     )

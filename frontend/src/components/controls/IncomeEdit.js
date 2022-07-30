@@ -36,19 +36,12 @@ function IncomeEdit({ income = {}, updateIncome }) {
         <div>
             <form className="form" onSubmit={handleSubmit}>
                 <div className="form-group">
-                    <label className="form-text">Name:</label>
-                    <input type="text" id="name" value={name} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label className="form-text">Amount:</label>
-                    <input type="text" id="amount" value={amount} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label className="form-text">Pay Periods:</label>
-                    <input type="text" id="payPeriods" value={payPeriods} onChange={handleChange} />
+                    <input type="text" id="name" value={name} onChange={handleChange} placeholder="Name" required />
+                    <input type="text" id="amount" value={amount} onChange={handleChange} placeholder="Amount" required />
+                    <input type="text" id="payPeriods" value={payPeriods} onChange={handleChange} placeholder="Pay Periods" required />
+                    <input type="submit" value="Save" className="btn btn-primary my-1" />
                 </div>
                 <input type="hidden" id="id" value={income.id} />
-                <input type="submit" value="Save" className="btn btn-primary my-1" />
             </form>
         </div>
     )

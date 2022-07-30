@@ -31,15 +31,11 @@ function AssetEdit({ asset = {}, updateAsset }) {
         <div>
             <form className="form" onSubmit={handleSubmit}>
                 <div className="form-group">
-                    <label className="form-text">Name:</label>
-                    <input type="text" id="name" value={name} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                    <label className="form-text">Value:</label>
-                    <input type="text" id="value" value={value} onChange={handleChange} />
+                    <input type="text" id="name" value={name} onChange={handleChange} placeholder="Name" required />
+                    <input type="text" id="value" value={value} onChange={handleChange} placeholder="Value" required />
+                    <input type="submit" value="Save" className="btn btn-primary my-1" />
                 </div>
                 <input type="hidden" id="id" value={asset.id} />
-                <input type="submit" value="Save" className="btn btn-primary my-1" />
             </form>
         </div>
     )

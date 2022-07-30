@@ -28,10 +28,10 @@ services:
         image: mongo
         restart: always
         volumes:
-            - ./data:/data/db
+            - ./data/db:/data/db
         ports:
             - 27017:27017
-        command: mongod --noauth
+        command: mongod --noauth --dbpath /data/db
         
     api:
         build:
