@@ -79,7 +79,7 @@ export const login = (email, password) => async dispatch => {
         dispatch(loadUser());
     } catch (error) {
         if (error.response) {
-            const errors = error.response.data.errors;
+            const errors = error.response.data?.errors;
             if (errors) {
                 errors.forEach(error => dispatch(createAlert(error.message, 'danger')));
             }

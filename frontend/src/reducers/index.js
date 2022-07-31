@@ -11,14 +11,14 @@ import liabilityData from './liabilities';
 import trasactionData from './trasactions';
 
 export default combineReducers({
-    alertData,
-    authData,
-    profileData,
-    accountData,
-    assetData,
-    budgetCategoryData,
-    expenditureData,
-    incomeData,
-    liabilityData,
-    trasactionData
+  alertData,
+  authData,
+  profileData,
+  accountData,
+  assetData,
+  budgetCategoryData,
+  expenditureData,
+  incomeData,
+  liabilityData,
+  trasactionData,
 });

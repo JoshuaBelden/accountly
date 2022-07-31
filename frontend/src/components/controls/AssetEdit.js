@@ -41,6 +41,6 @@ function AssetEdit({ asset = {}, updateAsset }) {
     )
 }
 
-const mapStateToProps = state => ({})
+const mapStateToProps = () => ({})
 
 export default connect(mapStateToProps, { updateAsset })(AssetEdit);

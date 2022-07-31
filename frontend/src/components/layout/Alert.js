@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 
 import { createAlert, deleteAlert } from '../../actions/alert';
 
-const Alert = ({ createAlert, deleteAlert, alerts }) => (
+const Alert = ({ alerts }) => (
     <div className="alert-container">
         {
             alerts.map(alert => (

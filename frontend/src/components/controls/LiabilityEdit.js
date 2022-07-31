@@ -53,6 +53,6 @@ function LiabilityEdit({ liability = {}, updateLiability }) {
     )
 }
 
-const mapStateToProps = state => ({})
+const mapStateToProps = () => ({})
 
 export default connect(mapStateToProps, { updateLiability })(LiabilityEdit);

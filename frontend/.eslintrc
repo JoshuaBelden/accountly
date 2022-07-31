@@ -1,5 +1,4 @@
 {
-  "parser": "babel-eslint",
   "extends": "eslint:recommended",
 
   "plugins": [
@@ -12,12 +11,15 @@
     "node": true
   },
 
+  "parser": "@babel/eslint-parser",
+
   "parserOptions": {
+    "requireConfigFile": false,
     "ecmaVersion": 2017,
     "sourceType": "module",
     "impliedStrict": true,
     "ecmaFeatures": {
-      "jsx": false
+      "jsx": true
     }
   },
 
@@ -38,7 +40,7 @@
     "no-debugger": 0,
     "no-empty-pattern": 0,
     "no-useless-escape": 0,
-    "comma-dangle": "warn",
+    "comma-dangle": "off",
     "semi": "warn",
     "curly": ["error", "multi-line"],
     "quotes": ["warn", "single"],

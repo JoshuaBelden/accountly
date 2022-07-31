@@ -47,6 +47,6 @@ function IncomeEdit({ income = {}, updateIncome }) {
     )
 }
 
-const mapStateToProps = state => ({})
+const mapStateToProps = () => ({})
 
 export default connect(mapStateToProps, { updateIncome })(IncomeEdit);

@@ -18,8 +18,5 @@
   "homepage": "https://github.com/JoshuaBelden/accountly#readme",
   "devDependencies": {
     "concurrently": "^5.2.0"
-  },
-  "dependencies": {
-    "eslint": "^6.6.0"
   }
 }

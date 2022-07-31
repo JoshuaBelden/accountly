@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { withRouter, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { updateProfile, getMyProfile } from '../../actions/profile';
 
@@ -175,4 +175,4 @@ const mapStateToProps = state => ({
     profileData: state.profileData
 });
 
-export default connect(mapStateToProps, { updateProfile, getMyProfile })(withRouter(EditProfile));
+export default connect(mapStateToProps, { updateProfile, getMyProfile })(EditProfile);

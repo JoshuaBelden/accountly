@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import axios from 'axios';
 import React, { useEffect } from 'react';
@@ -14,32 +14,31 @@ import AlertList from './components/layout/Alert';
 import './App.css';
 
 if (localStorage.token) {
-	setAuthToken(localStorage.token);
+  setAuthToken(localStorage.token);
 }
 
 if (process.env.NODE_ENV === 'production') {
-	axios.defaults.baseURL = 'https://api.accountly.com';
+  axios.defaults.baseURL = 'https://api.accountly.com';
 } else {
-	axios.defaults.baseURL = 'http://localhost:7001';
+  axios.defaults.baseURL = 'http://localhost:7001';
 }
 
 const App = () => {
+  useEffect(() => {
+    store.dispatch(loadUser());
+  });
 
-	useEffect(() => {
-		store.dispatch(loadUser());
-	});
-
-	return (
-		<Provider store={store}>
-			<Router>
-				<AlertList />
-				<Switch>
-					<Route exact path="/" component={Dashboard} />
-					<Route path="/" component={Page} />
-				</Switch>
-			</Router>
-		</Provider>
-	);
+  return (
+    <Provider store={store}>
+      <AlertList />
+      <BrowserRouter>
+        <Routes>
+          <Route exact path="/" element={<Dashboard />} />
+          <Route path="/*" element={<Page />} />
+        </Routes>
+      </BrowserRouter>
+    </Provider>
+  );
 };
 
 export default App;
