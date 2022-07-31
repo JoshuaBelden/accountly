@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 import { updateExpenditure } from '../../actions/expenditures';
 
-function ExpenditureEdit({ expenditure = {}, updateExpenditure }) {
+function ExpenditureEdit({ expenditure, updateExpenditure }) {
   const [name, setName] = useState(expenditure.name);
   const [amount, setAmount] = useState(expenditure.amount);
   const [due, setDue] = useState(expenditure.due);
@@ -35,6 +36,14 @@ function ExpenditureEdit({ expenditure = {}, updateExpenditure }) {
       due,
       autoWithdrawal,
     });
+    clearform();
+  };
+
+  const clearform = () => {
+    setName(ExpenditureEdit.defaultProps.expenditure.name);
+    setAmount(ExpenditureEdit.defaultProps.expenditure.amount);
+    setDue(ExpenditureEdit.defaultProps.expenditure.due);
+    setAutoWithdrawal(ExpenditureEdit.defaultProps.expenditure.autoWithdrawal);
   };
 
   return (
@@ -52,6 +61,20 @@ function ExpenditureEdit({ expenditure = {}, updateExpenditure }) {
     </div>
   );
 }
+
+ExpenditureEdit.propTypes = {
+  updateExpenditure: PropTypes.func,
+  expenditure: PropTypes.object,
+};
+
+ExpenditureEdit.defaultProps = {
+  expenditure: {
+    name: '',
+    amount: 0,
+    due: '',
+    autoWithdrawal: true,
+  },
+};
 
 const mapStateToProps = () => ({});
 

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 import { updateLiability } from '../../actions/liabilities';
 
-function LiabilityEdit({ liability = {}, updateLiability }) {
+function LiabilityEdit({ liability, updateLiability }) {
   const [name, setName] = useState(liability.name);
   const [balance, setBalance] = useState(liability.balance);
   const [due, setDue] = useState(liability.due);
@@ -35,6 +36,14 @@ function LiabilityEdit({ liability = {}, updateLiability }) {
       due,
       autoWithdrawal,
     });
+    clearform();
+  };
+
+  const clearform = () => {
+    setName(LiabilityEdit.defaultProps.liability.name);
+    setBalance(LiabilityEdit.defaultProps.liability.balance);
+    setDue(LiabilityEdit.defaultProps.liability.due);
+    setAutoWithdrawal(LiabilityEdit.defaultProps.liability.autoWithdrawal);
   };
 
   return (
@@ -52,6 +61,20 @@ function LiabilityEdit({ liability = {}, updateLiability }) {
     </div>
   );
 }
+
+LiabilityEdit.propTypes = {
+  updateLiability: PropTypes.func,
+  liability: PropTypes.object,
+};
+
+LiabilityEdit.defaultProps = {
+  liability: {
+    name: '',
+    balance: 0,
+    due: '',
+    autoWithdrawal: true,
+  },
+};
 
 const mapStateToProps = () => ({});
 

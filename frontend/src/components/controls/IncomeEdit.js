@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 import { updateIncome } from '../../actions/income';
 
-function IncomeEdit({ income = {}, updateIncome }) {
+function IncomeEdit({ income, updateIncome }) {
   const [name, setName] = useState(income.name);
   const [amount, setAmount] = useState(income.amount);
   const [payPeriods, setPayPeriods] = useState(income.payPeriods);
@@ -30,6 +31,13 @@ function IncomeEdit({ income = {}, updateIncome }) {
       amount,
       payPeriods,
     });
+    clearform();
+  };
+
+  const clearform = () => {
+    setName(IncomeEdit.defaultProps.income.name);
+    setAmount(IncomeEdit.defaultProps.income.amount);
+    setPayPeriods(IncomeEdit.defaultProps.income.payPeriods);
   };
 
   return (
@@ -53,6 +61,19 @@ function IncomeEdit({ income = {}, updateIncome }) {
     </div>
   );
 }
+
+IncomeEdit.propTypes = {
+  updateIncome: PropTypes.func,
+  income: PropTypes.object,
+};
+
+IncomeEdit.defaultProps = {
+  income: {
+    name: '',
+    amount: 0,
+    payPeriods: '',
+  },
+};
 
 const mapStateToProps = () => ({});
 

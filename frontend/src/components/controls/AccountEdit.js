@@ -36,10 +36,18 @@ function AccountEdit({ account, updateAccount, deleteAccount }) {
       routingNumber,
       balance,
     });
+    clearForm();
   };
 
   const handleDelete = () => {
     deleteAccount(account.id);
+  };
+
+  const clearForm = () => {
+    setName(AccountEdit.defaultProps.account.name);
+    setAccountNumber(AccountEdit.defaultProps.account.accountNumber);
+    setRoutingNumber(AccountEdit.defaultProps.account.routingNumber);
+    setBalance(AccountEdit.defaultProps.account.balance);
   };
 
   return (
@@ -75,6 +83,8 @@ function AccountEdit({ account, updateAccount, deleteAccount }) {
 }
 
 AccountEdit.propTypes = {
+  updateAccount: PropTypes.func,
+  deleteAccount: PropTypes.func,
   account: PropTypes.object,
 };
 

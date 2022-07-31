@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 import { updateAsset } from '../../actions/assets';
 
-function AssetEdit({ asset = {}, updateAsset }) {
+function AssetEdit({ asset, updateAsset }) {
   const [name, setName] = useState(asset.name);
   const [value, setValue] = useState(asset.value);
 
@@ -25,6 +26,12 @@ function AssetEdit({ asset = {}, updateAsset }) {
       name,
       value,
     });
+    clearForm();
+  };
+
+  const clearForm = () => {
+    setName(AssetEdit.defaultProps.asset.name);
+    setValue(AssetEdit.defaultProps.asset.value);
   };
 
   return (
@@ -40,6 +47,18 @@ function AssetEdit({ asset = {}, updateAsset }) {
     </div>
   );
 }
+
+AssetEdit.propTypes = {
+  updateAsset: PropTypes.func,
+  asset: PropTypes.object,
+};
+
+AssetEdit.defaultProps = {
+  asset: {
+    name: '',
+    value: 0,
+  },
+};
 
 const mapStateToProps = () => ({});
 

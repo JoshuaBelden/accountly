@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 import { updateBudgetCategory } from '../../actions/budgetCategories';
 
-function BudgetCategoryEdit({ budgetCategory = {}, updateAsset }) {
+function BudgetCategoryEdit({ budgetCategory, updateBudgetCategory }) {
   const [name, setName] = useState(budgetCategory.name);
   const [amount, setAmount] = useState(budgetCategory.amount);
 
@@ -25,6 +26,12 @@ function BudgetCategoryEdit({ budgetCategory = {}, updateAsset }) {
       name,
       amount,
     });
+    clearform();
+  };
+
+  const clearform = () => {
+    setName(BudgetCategoryEdit.defaultProps.budgetCategory.name);
+    setAmount(BudgetCategoryEdit.defaultProps.budgetCategory.amount);
   };
 
   return (
@@ -45,6 +52,18 @@ function BudgetCategoryEdit({ budgetCategory = {}, updateAsset }) {
   );
 }
 
-const mapStateToProps = (state) => ({});
+BudgetCategoryEdit.propTypes = {
+  updateBudgetCategory: PropTypes.func,
+  budgetCategory: PropTypes.object,
+};
+
+BudgetCategoryEdit.defaultProps = {
+  budgetCategory: {
+    name: '',
+    amount: 0,
+  },
+};
+
+const mapStateToProps = () => ({});
 
 export default connect(mapStateToProps, { updateBudgetCategory })(BudgetCategoryEdit);
