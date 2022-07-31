@@ -1,22 +1,15 @@
 {
-  "name": "dev-connector",
-  "version": "1.0.0",
-  "description": "Social platform for developers.",
+  "name": "accountly",
+  "author": "Joshua C Belden",
+  "license": "MIT",
+  "version": "0.1.0",
+  "private": true,
   "main": "server.js",
   "scripts": {
+    "pretty": "prettier --write \"./**/*.{js,jsx,json}\"",
     "test": "node server",
     "start": "nodemon server"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/JoshuaBelden/dev-connector.git"
-  },
-  "author": "",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/JoshuaBelden/dev-connector/issues"
-  },
-  "homepage": "https://github.com/JoshuaBelden/dev-connector#readme",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "config": "^3.3.2",
@@ -33,6 +26,10 @@
     "request": "^2.88.2"
   },
   "devDependencies": {
+    "eslint": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-jsx": "^0.1.0",
+    "prettier": "^2.7.1",
     "concurrently": "^5.3.0"
   }
 }

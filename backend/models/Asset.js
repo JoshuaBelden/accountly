@@ -2,19 +2,20 @@ const { ObjectId } = require('mongoose');
 const mongoose = require('mongoose');
 
 const AssetSchema = new mongoose.Schema({
-    id: {
-        type: ObjectId,
-        required: true
-    },
-    name: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    value: {
-        type: Number,
-        required: true
-    }
+  id: {
+    type: ObjectId,
+    required: true,
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  value: {
+    type: Number,
+    required: true,
+  },
 });
 
-module.exports = Assets = mongoose.model('assets', AssetSchema);
+const Assets = mongoose.model('assets', AssetSchema);
+module.exports = Assets;

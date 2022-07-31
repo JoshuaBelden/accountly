@@ -3,7 +3,8 @@
 
   "plugins": [
     "react",
-    "prettier"
+    "prettier",
+    "jsx"
   ],
 
   "env": {
@@ -11,11 +12,10 @@
     "node": true
   },
 
-  "parser": "@babel/eslint-parser",
-
   "parserOptions": {
+    "parser": "@babel/eslint-parser",
     "requireConfigFile": false,
-    "ecmaVersion": 2017,
+    "ecmaVersion": 12,
     "sourceType": "module",
     "impliedStrict": true,
     "ecmaFeatures": {

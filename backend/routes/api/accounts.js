@@ -54,7 +54,7 @@ router.post(
               balance,
             },
           },
-          { new: true }
+          { new: true },
         );
       }
       res.json(record);
@@ -62,13 +62,13 @@ router.post(
       console.error(error.message);
       res.status(500).send('Server error');
     }
-  }
+  },
 );
 
 router.delete('/:id', auth, async (req, res) => {
   try {
     await Account.deleteOne({ id: req.params.id });
-    res.json()
+    res.json();
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server error');

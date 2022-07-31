@@ -2,7 +2,9 @@
   "extends": "eslint:recommended",
 
   "plugins": [
-    "prettier"
+    "react",
+    "prettier",
+    "jsx"
   ],
 
   "env": {
@@ -11,11 +13,13 @@
   },
 
   "parserOptions": {
-    "ecmaVersion": 2017,
+    "parser": "@babel/eslint-parser",
+    "requireConfigFile": false,
+    "ecmaVersion": 12,
     "sourceType": "module",
     "impliedStrict": true,
     "ecmaFeatures": {
-      "jsx": false
+      "jsx": true
     }
   },
 

@@ -61,7 +61,7 @@ export const updateAccount = (account) => async (dispatch) => {
   }
 };
 
-export const deleteAccount = id => async (dispatch) => {
+export const deleteAccount = (id) => async (dispatch) => {
   try {
     const config = {
       headers: {

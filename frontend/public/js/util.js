@@ -25,7 +25,7 @@
           indent +
           '"></span>' +
           $this.text() +
-          '</a>'
+          '</a>',
       );
     });
 
@@ -85,7 +85,7 @@
         // Class to toggle.
         visibleClass: 'visible',
       },
-      userConfig
+      userConfig,
     );
 
     // Expand "target" if it's not a jQuery object already.
@@ -299,7 +299,7 @@
           .remove()
           .html()
           .replace(/type="password"/i, 'type="text"')
-          .replace(/type=password/i, 'type=text')
+          .replace(/type=password/i, 'type=text'),
       );
 
       if (i.attr('id') != '') x.attr('id', i.attr('id') + '-polyfill-field');
