@@ -9,6 +9,7 @@ import store from './store';
 
 import Dashboard from './components/pages/Dashboard';
 import { Page } from './components/pages/Page';
+import Confirmation from './components/modals/Confirmation';
 import AlertList from './components/layout/Alert';
 
 import './App.css';
@@ -30,6 +31,7 @@ const App = () => {
 
   return (
     <Provider store={store}>
+      <Confirmation />
       <AlertList />
       <BrowserRouter>
         <Routes>

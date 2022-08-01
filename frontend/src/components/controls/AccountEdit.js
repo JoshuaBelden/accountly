@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import { showConfirmation } from '../../actions/confirmations';
 import { deleteAccount, updateAccount } from '../../actions/accounts';
-
-function AccountEdit({ account, updateAccount, deleteAccount }) {
+function AccountEdit({ account, showConfirmation, updateAccount, deleteAccount }) {
   const [name, setName] = useState(account.name);
   const [accountNumber, setAccountNumber] = useState(account.accountNumber);
   const [routingNumber, setRoutingNumber] = useState(account.routingNumber);
@@ -40,7 +40,15 @@ function AccountEdit({ account, updateAccount, deleteAccount }) {
   };
 
   const handleDelete = () => {
-    deleteAccount(account.id);
+    showConfirmation(
+      'Delete Confirmation',
+      'Delete Confirmation',
+      'Are you sure you want to delete this record?',
+      'Delete',
+      () => {
+        deleteAccount(account.id);
+      },
+    );
   };
 
   const clearForm = () => {
@@ -83,6 +91,7 @@ function AccountEdit({ account, updateAccount, deleteAccount }) {
 }
 
 AccountEdit.propTypes = {
+  showConfirmation: PropTypes.func,
   updateAccount: PropTypes.func,
   deleteAccount: PropTypes.func,
   account: PropTypes.object,
@@ -99,4 +108,4 @@ AccountEdit.defaultProps = {
 
 const mapStateToProps = () => ({});
 
-export default connect(mapStateToProps, { updateAccount, deleteAccount })(AccountEdit);
+export default connect(mapStateToProps, { showConfirmation, updateAccount, deleteAccount })(AccountEdit);
