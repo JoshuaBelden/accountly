@@ -1,62 +1,23 @@
-import axios from 'axios';
+import { getWithDispatch, postWithDispatch, deleteWithDispatch } from '../utils/request';
 import { BUDGET_CATEGORY_RETRIEVED, BUDGET_CATEGORY_FAILED } from './types';
 import { createAlert } from './alert';
 
+const modelEndpoint = 'budgetcategories';
+const successAction = BUDGET_CATEGORY_RETRIEVED;
+const failedAction = BUDGET_CATEGORY_FAILED;
+
 export const getBudgetCategories = () => async (dispatch) => {
-  try {
-    const res = await axios.get('/api/budgetcategories');
-    dispatch({
-      type: BUDGET_CATEGORY_RETRIEVED,
-      payload: res.data,
-    });
-  } catch (error) {
-    if (error.response) {
-      dispatch({
-        type: BUDGET_CATEGORY_FAILED,
-        payload: {
-          message: error.response.statusText,
-          status: error.response.status,
-        },
-      });
-    } else {
-      dispatch({
-        type: BUDGET_CATEGORY_FAILED,
-        payload: {
-          message: error,
-        },
-      });
-    }
-  }
+  await getWithDispatch(dispatch, modelEndpoint, successAction, failedAction);
 };
 
 export const updateBudgetCategory = (budgetCategory) => async (dispatch) => {
-  try {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
+  await postWithDispatch(dispatch, modelEndpoint, budgetCategory, failedAction);
+  dispatch(createAlert('Budget category has been updated.', 'success'));
+  dispatch(getBudgetCategories());
+};
 
-    await axios.post('api/budgetcategories', budgetCategory, config);
-
-    dispatch(createAlert('Budget category has been updated.', 'success'));
-    dispatch(getBudgetCategories());
-  } catch (error) {
-    if (error.response) {
-      dispatch({
-        type: BUDGET_CATEGORY_FAILED,
-        payload: {
-          message: error.response.statusText,
-          status: error.response.status,
-        },
-      });
-    } else {
-      dispatch({
-        type: ACCOUNTS_FAILED,
-        payload: {
-          message: error,
-        },
-      });
-    }
-  }
+export const deleteBudgetCategory = (id) => async (dispatch) => {
+  deleteWithDispatch(dispatch, modelEndpoint, id, failedAction);
+  dispatch(createAlert('Budget category has been deleted.', 'success'));
+  dispatch(getBudgetCategories());
 };

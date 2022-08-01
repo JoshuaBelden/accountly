@@ -1,62 +1,23 @@
-import axios from 'axios';
+import { getWithDispatch, postWithDispatch, deleteWithDispatch } from '../utils/request';
 import { TRANSACTION_RETRIEVED, TRANSACTION_FAILED } from './types';
 import { createAlert } from './alert';
 
-export const getTrasactions = () => async (dispatch) => {
-  try {
-    const res = await axios.get('/api/transactions');
-    dispatch({
-      type: TRANSACTION_RETRIEVED,
-      payload: res.data,
-    });
-  } catch (error) {
-    if (error.response) {
-      dispatch({
-        type: TRANSACTION_FAILED,
-        payload: {
-          message: error.response.statusText,
-          status: error.response.status,
-        },
-      });
-    } else {
-      dispatch({
-        type: TRANSACTION_FAILED,
-        payload: {
-          message: error,
-        },
-      });
-    }
-  }
+const modelEndpoint = 'transactions';
+const successAction = TRANSACTION_RETRIEVED;
+const failedAction = TRANSACTION_FAILED;
+
+export const getTransactions = () => async (dispatch) => {
+  await getWithDispatch(dispatch, modelEndpoint, successAction, failedAction);
 };
 
 export const updateTransaction = (transaction) => async (dispatch) => {
-  try {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
+  await postWithDispatch(dispatch, modelEndpoint, transaction, failedAction);
+  dispatch(createAlert('Transaction has been updated.', 'success'));
+  dispatch(getTransactions());
+};
 
-    await axios.post('api/transactions', transaction, config);
-
-    dispatch(createAlert('Transaction has been updated.', 'success'));
-    dispatch(getTrasactions());
-  } catch (error) {
-    if (error.response) {
-      dispatch({
-        type: TRANSACTION_FAILED,
-        payload: {
-          message: error.response.statusText,
-          status: error.response.status,
-        },
-      });
-    } else {
-      dispatch({
-        type: TRANSACTION_FAILED,
-        payload: {
-          message: error,
-        },
-      });
-    }
-  }
+export const deleteTransaction = (id) => async (dispatch) => {
+  deleteWithDispatch(dispatch, modelEndpoint, id, failedAction);
+  dispatch(createAlert('Transaction has been deleted.', 'success'));
+  dispatch(getTransactions());
 };

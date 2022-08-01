@@ -1,62 +1,23 @@
-import axios from 'axios';
+import { getWithDispatch, postWithDispatch, deleteWithDispatch } from '../utils/request';
 import { ASSETS_RETRIEVED, ASSETS_FAILED } from './types';
 import { createAlert } from './alert';
 
+const modelEndpoint = 'assets';
+const successAction = ASSETS_RETRIEVED;
+const failedAction = ASSETS_FAILED;
+
 export const getAssets = () => async (dispatch) => {
-  try {
-    const res = await axios.get('/api/assets');
-    dispatch({
-      type: ASSETS_RETRIEVED,
-      payload: res.data,
-    });
-  } catch (error) {
-    if (error.response) {
-      dispatch({
-        type: ASSETS_FAILED,
-        payload: {
-          message: error.response.statusText,
-          status: error.response.status,
-        },
-      });
-    } else {
-      dispatch({
-        type: ASSETS_FAILED,
-        payload: {
-          message: error,
-        },
-      });
-    }
-  }
+  await getWithDispatch(dispatch, modelEndpoint, successAction, failedAction);
 };
 
 export const updateAsset = (asset) => async (dispatch) => {
-  try {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
+  await postWithDispatch(dispatch, modelEndpoint, asset, failedAction);
+  dispatch(createAlert('Asset has been updated.', 'success'));
+  dispatch(getAssets());
+};
 
-    await axios.post('api/assets', asset, config);
-
-    dispatch(createAlert('Asset has been updated.', 'success'));
-    dispatch(getAssets());
-  } catch (error) {
-    if (error.response) {
-      dispatch({
-        type: ASSETS_FAILED,
-        payload: {
-          message: error.response.statusText,
-          status: error.response.status,
-        },
-      });
-    } else {
-      dispatch({
-        type: ASSETS_FAILED,
-        payload: {
-          message: error,
-        },
-      });
-    }
-  }
+export const deleteAsset = (id) => async (dispatch) => {
+  deleteWithDispatch(dispatch, modelEndpoint, id, failedAction);
+  dispatch(createAlert('Asset has been deleted.', 'success'));
+  dispatch(getAssets());
 };

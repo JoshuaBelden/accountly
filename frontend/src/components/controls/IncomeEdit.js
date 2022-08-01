@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { updateIncome } from '../../actions/income';
+import { showConfirmation } from '../../actions/confirmations';
+import { updateIncome, deleteIncome } from '../../actions/income';
 
-function IncomeEdit({ income, updateIncome }) {
+function IncomeEdit({ income, showConfirmation, updateIncome, deleteIncome }) {
   const [name, setName] = useState(income.name);
   const [amount, setAmount] = useState(income.amount);
   const [payPeriods, setPayPeriods] = useState(income.payPeriods);
@@ -31,7 +32,22 @@ function IncomeEdit({ income, updateIncome }) {
       amount,
       payPeriods,
     });
-    clearform();
+
+    if (!income.id) {
+      clearform();
+    }
+  };
+
+  const handleDelete = () => {
+    showConfirmation(
+      'Delete Confirmation',
+      'Delete Confirmation',
+      'Are you sure you want to delete this record?',
+      'Delete',
+      () => {
+        deleteIncome(income.id);
+      },
+    );
   };
 
   const clearform = () => {
@@ -55,6 +71,7 @@ function IncomeEdit({ income, updateIncome }) {
             required
           />
           <input type="submit" value="Save" className="btn btn-primary my-1" />
+          {income.id && <input type="button" value="Delete" onClick={handleDelete} className="btn btn-primary my-1" />}
         </div>
         <input type="hidden" id="id" value={income.id} />
       </form>
@@ -63,8 +80,10 @@ function IncomeEdit({ income, updateIncome }) {
 }
 
 IncomeEdit.propTypes = {
-  updateIncome: PropTypes.func,
   income: PropTypes.object,
+  showConfirmation: PropTypes.func,
+  updateIncome: PropTypes.func,
+  deleteIncome: PropTypes.func,
 };
 
 IncomeEdit.defaultProps = {
@@ -77,4 +96,4 @@ IncomeEdit.defaultProps = {
 
 const mapStateToProps = () => ({});
 
-export default connect(mapStateToProps, { updateIncome })(IncomeEdit);
+export default connect(mapStateToProps, { showConfirmation, updateIncome, deleteIncome })(IncomeEdit);

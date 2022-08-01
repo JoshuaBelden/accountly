@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { updateBudgetCategory } from '../../actions/budgetCategories';
+import { showConfirmation } from '../../actions/confirmations';
+import { updateBudgetCategory, deleteBudgetCategory } from '../../actions/budgetCategories';
 
-function BudgetCategoryEdit({ budgetCategory, updateBudgetCategory }) {
+function BudgetCategoryEdit({ budgetCategory, showConfirmation, updateBudgetCategory, deleteBudgetCategory }) {
   const [name, setName] = useState(budgetCategory.name);
   const [amount, setAmount] = useState(budgetCategory.amount);
 
@@ -26,7 +27,22 @@ function BudgetCategoryEdit({ budgetCategory, updateBudgetCategory }) {
       name,
       amount,
     });
-    clearform();
+
+    if (!budgetCategory.id) {
+      clearform();
+    }
+  };
+
+  const handleDelete = () => {
+    showConfirmation(
+      'Delete Confirmation',
+      'Delete Confirmation',
+      'Are you sure you want to delete this record?',
+      'Delete',
+      () => {
+        deleteBudgetCategory(budgetCategory.id);
+      },
+    );
   };
 
   const clearform = () => {
@@ -47,14 +63,19 @@ function BudgetCategoryEdit({ budgetCategory, updateBudgetCategory }) {
         </div>
         <input type="hidden" id="id" value={budgetCategory.id} />
         <input type="submit" value="Save" className="btn btn-primary my-1" />
+        {budgetCategory.id && (
+          <input type="button" value="Delete" onClick={handleDelete} className="btn btn-primary my-1" />
+        )}
       </form>
     </div>
   );
 }
 
 BudgetCategoryEdit.propTypes = {
-  updateBudgetCategory: PropTypes.func,
   budgetCategory: PropTypes.object,
+  showConfirmation: PropTypes.func,
+  updateBudgetCategory: PropTypes.func,
+  deleteBudgetCategory: PropTypes.func,
 };
 
 BudgetCategoryEdit.defaultProps = {
@@ -66,4 +87,6 @@ BudgetCategoryEdit.defaultProps = {
 
 const mapStateToProps = () => ({});
 
-export default connect(mapStateToProps, { updateBudgetCategory })(BudgetCategoryEdit);
+export default connect(mapStateToProps, { showConfirmation, updateBudgetCategory, deleteBudgetCategory })(
+  BudgetCategoryEdit,
+);

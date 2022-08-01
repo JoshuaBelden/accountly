@@ -1,93 +1,23 @@
-import axios from 'axios';
+import { getWithDispatch, postWithDispatch, deleteWithDispatch } from '../utils/request';
 import { ACCOUNTS_RETRIEVED, ACCOUNTS_FAILED } from './types';
 import { createAlert } from './alert';
 
+const modelEndpoint = 'accounts';
+const successAction = ACCOUNTS_RETRIEVED;
+const failedAction = ACCOUNTS_FAILED;
+
 export const getAccounts = () => async (dispatch) => {
-  try {
-    const res = await axios.get('/api/accounts');
-    dispatch({
-      type: ACCOUNTS_RETRIEVED,
-      payload: res.data,
-    });
-  } catch (error) {
-    if (error.response) {
-      dispatch({
-        type: ACCOUNTS_FAILED,
-        payload: {
-          message: error.response.statusText,
-          status: error.response.status,
-        },
-      });
-    } else {
-      dispatch({
-        type: ACCOUNTS_FAILED,
-        payload: {
-          message: error,
-        },
-      });
-    }
-  }
+  await getWithDispatch(dispatch, modelEndpoint, successAction, failedAction);
 };
 
 export const updateAccount = (account) => async (dispatch) => {
-  try {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
-
-    await axios.post('api/accounts', account, config);
-
-    dispatch(createAlert('Account has been updated.', 'success'));
-    dispatch(getAccounts());
-  } catch (error) {
-    if (error.response) {
-      dispatch({
-        type: ACCOUNTS_FAILED,
-        payload: {
-          message: error.response.statusText,
-          status: error.response.status,
-        },
-      });
-    } else {
-      dispatch({
-        type: ACCOUNTS_FAILED,
-        payload: {
-          message: error,
-        },
-      });
-    }
-  }
+  await postWithDispatch(dispatch, modelEndpoint, account, failedAction);
+  dispatch(createAlert('Account has been updated.', 'success'));
+  dispatch(getAccounts());
 };
 
 export const deleteAccount = (id) => async (dispatch) => {
-  try {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
-    await axios.delete(`api/accounts/${id}`, config);
-
-    dispatch(createAlert('Account has been deleted.', 'success'));
-    dispatch(getAccounts());
-  } catch (error) {
-    if (error.response) {
-      dispatch({
-        type: ACCOUNTS_FAILED,
-        payload: {
-          message: error.response.statusText,
-          status: error.response.status,
-        },
-      });
-    } else {
-      dispatch({
-        type: ACCOUNTS_FAILED,
-        payload: {
-          message: error,
-        },
-      });
-    }
-  }
+  deleteWithDispatch(dispatch, modelEndpoint, id, failedAction);
+  dispatch(createAlert('Account has been deleted.', 'success'));
+  dispatch(getAccounts());
 };

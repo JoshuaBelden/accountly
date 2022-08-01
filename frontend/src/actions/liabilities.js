@@ -1,62 +1,23 @@
-import axios from 'axios';
+import { getWithDispatch, postWithDispatch, deleteWithDispatch } from '../utils/request';
 import { LIABILITY_RETRIEVED, LIABILITY_FAILED } from './types';
 import { createAlert } from './alert';
 
+const modelEndpoint = 'liabilities';
+const successAction = LIABILITY_RETRIEVED;
+const failedAction = LIABILITY_FAILED;
+
 export const getLiabilities = () => async (dispatch) => {
-  try {
-    const res = await axios.get('/api/liabilities');
-    dispatch({
-      type: LIABILITY_RETRIEVED,
-      payload: res.data,
-    });
-  } catch (error) {
-    if (error.response) {
-      dispatch({
-        type: LIABILITY_FAILED,
-        payload: {
-          message: error.response.statusText,
-          status: error.response.status,
-        },
-      });
-    } else {
-      dispatch({
-        type: LIABILITY_FAILED,
-        payload: {
-          message: error,
-        },
-      });
-    }
-  }
+  await getWithDispatch(dispatch, modelEndpoint, successAction, failedAction);
 };
 
 export const updateLiability = (liability) => async (dispatch) => {
-  try {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
+  await postWithDispatch(dispatch, modelEndpoint, liability, failedAction);
+  dispatch(createAlert('Liability has been updated.', 'success'));
+  dispatch(getLiabilities());
+};
 
-    await axios.post('api/liabilities', liability, config);
-
-    dispatch(createAlert('Liability has been updated.', 'success'));
-    dispatch(getLiabilities());
-  } catch (error) {
-    if (error.response) {
-      dispatch({
-        type: LIABILITY_FAILED,
-        payload: {
-          message: error.response.statusText,
-          status: error.response.status,
-        },
-      });
-    } else {
-      dispatch({
-        type: LIABILITY_FAILED,
-        payload: {
-          message: error,
-        },
-      });
-    }
-  }
+export const deleteLiability = (id) => async (dispatch) => {
+  deleteWithDispatch(dispatch, modelEndpoint, id, failedAction);
+  dispatch(createAlert('Liability has been deleted.', 'success'));
+  dispatch(getLiabilities());
 };

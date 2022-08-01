@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { showConfirmation } from '../../actions/confirmations';
 import { deleteAccount, updateAccount } from '../../actions/accounts';
+
 function AccountEdit({ account, showConfirmation, updateAccount, deleteAccount }) {
   const [name, setName] = useState(account.name);
   const [accountNumber, setAccountNumber] = useState(account.accountNumber);
@@ -36,7 +37,10 @@ function AccountEdit({ account, showConfirmation, updateAccount, deleteAccount }
       routingNumber,
       balance,
     });
-    clearForm();
+
+    if (!account.id) {
+      clearForm();
+    }
   };
 
   const handleDelete = () => {

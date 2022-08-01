@@ -1,10 +1,6 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 const express = require('express');
-const { check, validationResult } = require('express-validator');
-const jwt = require('jsonwebtoken');
-const gravatar = require('gravatar');
-const authSecret = require('../../config/auth-secret');
+const { check } = require('express-validator');
 const auth = require('../../middleware/auth');
 const Asset = require('../../models/Asset');
 
@@ -60,4 +56,15 @@ router.post(
     }
   },
 );
+
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    await Asset.deleteOne({ id: req.params.id });
+    res.json();
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server error');
+  }
+});
+
 module.exports = router;

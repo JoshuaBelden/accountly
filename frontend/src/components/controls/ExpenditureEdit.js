@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { updateExpenditure } from '../../actions/expenditures';
+import { showConfirmation } from '../../actions/confirmations';
+import { updateExpenditure, deleteExpenditure } from '../../actions/expenditures';
 
-function ExpenditureEdit({ expenditure, updateExpenditure }) {
+function ExpenditureEdit({ expenditure, showConfirmation, updateExpenditure, deleteExpenditure }) {
   const [name, setName] = useState(expenditure.name);
   const [amount, setAmount] = useState(expenditure.amount);
   const [due, setDue] = useState(expenditure.due);
@@ -36,7 +37,22 @@ function ExpenditureEdit({ expenditure, updateExpenditure }) {
       due,
       autoWithdrawal,
     });
-    clearform();
+
+    if (!expenditure.id) {
+      clearform();
+    }
+  };
+
+  const handleDelete = () => {
+    showConfirmation(
+      'Delete Confirmation',
+      'Delete Confirmation',
+      'Are you sure you want to delete this record?',
+      'Delete',
+      () => {
+        deleteExpenditure(expenditure.id);
+      },
+    );
   };
 
   const clearform = () => {
@@ -55,6 +71,9 @@ function ExpenditureEdit({ expenditure, updateExpenditure }) {
           <input type="text" id="due" value={due} onChange={handleChange} placeholder="Due" required />
           <input type="checkbox" id="autoWithdrawal" value={autoWithdrawal} onChange={handleChange} />
           <input type="submit" value="Save" className="btn btn-primary my-1" />
+          {expenditure.id && (
+            <input type="button" value="Delete" onClick={handleDelete} className="btn btn-primary my-1" />
+          )}
         </div>
         <input type="hidden" id="id" value={expenditure.id} />
       </form>
@@ -63,8 +82,10 @@ function ExpenditureEdit({ expenditure, updateExpenditure }) {
 }
 
 ExpenditureEdit.propTypes = {
-  updateExpenditure: PropTypes.func,
   expenditure: PropTypes.object,
+  showConfirmation: PropTypes.func,
+  updateExpenditure: PropTypes.func,
+  deleteExpenditure: PropTypes.func,
 };
 
 ExpenditureEdit.defaultProps = {
@@ -78,4 +99,4 @@ ExpenditureEdit.defaultProps = {
 
 const mapStateToProps = () => ({});
 
-export default connect(mapStateToProps, { updateExpenditure })(ExpenditureEdit);
+export default connect(mapStateToProps, { showConfirmation, updateExpenditure, deleteExpenditure })(ExpenditureEdit);

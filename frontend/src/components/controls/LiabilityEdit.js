@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { updateLiability } from '../../actions/liabilities';
+import { showConfirmation } from '../../actions/confirmations';
+import { updateLiability, deleteLiability } from '../../actions/liabilities';
 
-function LiabilityEdit({ liability, updateLiability }) {
+function LiabilityEdit({ liability, showConfirmation, updateLiability, deleteLiability }) {
   const [name, setName] = useState(liability.name);
   const [balance, setBalance] = useState(liability.balance);
   const [due, setDue] = useState(liability.due);
@@ -36,7 +37,22 @@ function LiabilityEdit({ liability, updateLiability }) {
       due,
       autoWithdrawal,
     });
-    clearform();
+
+    if (!liability.id) {
+      clearform();
+    }
+  };
+
+  const handleDelete = () => {
+    showConfirmation(
+      'Delete Confirmation',
+      'Delete Confirmation',
+      'Are you sure you want to delete this record?',
+      'Delete',
+      () => {
+        deleteLiability(liability.id);
+      },
+    );
   };
 
   const clearform = () => {
@@ -55,6 +71,9 @@ function LiabilityEdit({ liability, updateLiability }) {
           <input type="text" id="due" value={due} onChange={handleChange} placeholder="Due" required />
           <input type="checkbox" id="autoWithdrawal" value={autoWithdrawal} onChange={handleChange} />
           <input type="submit" value="Save" className="btn btn-primary my-1" />
+          {liability.id && (
+            <input type="button" value="Delete" onClick={handleDelete} className="btn btn-primary my-1" />
+          )}
         </div>
         <input type="hidden" id="id" value={liability.id} />
       </form>
@@ -63,8 +82,10 @@ function LiabilityEdit({ liability, updateLiability }) {
 }
 
 LiabilityEdit.propTypes = {
-  updateLiability: PropTypes.func,
   liability: PropTypes.object,
+  showConfirmation: PropTypes.func,
+  updateLiability: PropTypes.func,
+  deleteLiability: PropTypes.func,
 };
 
 LiabilityEdit.defaultProps = {
@@ -78,4 +99,4 @@ LiabilityEdit.defaultProps = {
 
 const mapStateToProps = () => ({});
 
-export default connect(mapStateToProps, { updateLiability })(LiabilityEdit);
+export default connect(mapStateToProps, { showConfirmation, updateLiability, deleteLiability })(LiabilityEdit);
