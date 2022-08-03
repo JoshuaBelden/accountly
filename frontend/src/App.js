@@ -12,8 +12,6 @@ import { Page } from './components/pages/Page';
 import Confirmation from './components/modals/Confirmation';
 import AlertList from './components/layout/Alert';
 
-//import './App.css';
-
 if (localStorage.token) {
   setAuthToken(localStorage.token);
 }

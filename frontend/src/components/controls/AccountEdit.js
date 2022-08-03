@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { showConfirmation } from '../../actions/confirmations';
@@ -66,7 +66,15 @@ function AccountEdit({ account, showConfirmation, updateAccount, deleteAccount }
     <div>
       <form className="form" onSubmit={handleSubmit}>
         <div className="form-group">
-          <input type="text" id="name" value={name} onChange={handleChange} placeholder="Name" required />
+          <input
+            type="text"
+            id="name"
+            value={name}
+            onChange={handleChange}
+            placeholder="Name"
+            required
+            className="form-control"
+          />
           <input
             type="text"
             id="accountNumber"
