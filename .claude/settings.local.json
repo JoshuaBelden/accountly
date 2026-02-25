@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/joshuabelden/Code/**)",
+      "Bash(npm install)",
+      "Bash(npx svelte-kit sync)",
+      "Bash(npx svelte-check --tsconfig ./tsconfig.json)",
+      "Bash(node -e \"const pkg = require\\(''./node_modules/@sveltejs/vite-plugin-svelte/package.json''\\); console.log\\(pkg.version\\); const exports = Object.keys\\(pkg.exports || {}\\); console.log\\(exports\\);\")",
+      "Bash(node -e \"import\\(''./node_modules/@sveltejs/vite-plugin-svelte/src/index.js''\\).then\\(m => console.log\\(Object.keys\\(m\\)\\)\\)\")",
+      "Bash(node -e \"import\\(''./node_modules/@sveltejs/kit/src/exports/vite/index.js''\\).then\\(m => console.log\\(Object.keys\\(m\\)\\)\\).catch\\(e => console.log\\(e.message\\)\\)\")",
+      "Bash(npm run build)",
+      "Bash(node -e \"const v = require\\(''./node_modules/vite/package.json''\\).version; const r = require\\(''./node_modules/rollup/package.json''\\).version; const sk = require\\(''./node_modules/@sveltejs/kit/package.json''\\).version; console.log\\(''vite:'', v, ''rollup:'', r, ''sveltekit:'', sk\\)\")",
+      "Bash(npm show @sveltejs/kit version)"
+    ]
+  }
+}
