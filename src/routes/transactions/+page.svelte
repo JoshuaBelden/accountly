@@ -7,9 +7,11 @@
 	import type { BudgetCategory } from '$lib/types';
 	import Modal from '$lib/components/shared/Modal.svelte';
 	import TransactionForm from '$lib/components/transactions/TransactionForm.svelte';
+	import ImportTransactionsModal from '$lib/components/transactions/ImportTransactionsModal.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
 
 	let addTxOpen = false;
+	let importOpen = false;
 
 	// All checking + savings accounts for sub-nav (checking first)
 	$: transactionAccounts = [...$checkingAccounts, ...$savingsAccounts];
@@ -24,10 +26,10 @@
 
 	$: selectedAccount = transactionAccounts.find((a) => a.id === selectedAccountId);
 
-	// Cleared transactions for selected account, newest first by createdAt
+	// Cleared transactions for selected account, newest first by date then createdAt
 	$: accountTransactions = $transactionsStore
 		.filter((t) => t.accountId === selectedAccountId && t.clearedStatus === 'cleared')
-		.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+		.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
 
 	// Budget categories for display
 	let budgetCategories: BudgetCategory[] = [];
@@ -63,7 +65,15 @@
 	<div class="flex items-center justify-between">
 		<h1 class="text-2xl font-bold text-gray-100">Transactions</h1>
 		{#if selectedAccount}
-			<button class="btn-primary" on:click={() => (addTxOpen = true)}>+ Add Transaction</button>
+			<div class="flex gap-2">
+				<button class="btn-secondary" on:click={() => (importOpen = true)}>
+					<svg class="w-4 h-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+					</svg>
+					Import CSV
+				</button>
+				<button class="btn-primary" on:click={() => (addTxOpen = true)}>+ Add Transaction</button>
+			</div>
 		{/if}
 	</div>
 
@@ -127,6 +137,16 @@
 								{typeLabels[tx.type] ?? tx.type}
 							</span>
 
+							<!-- Imported badge -->
+							{#if tx.imported}
+								<span
+									class="text-xs px-2 py-0.5 rounded border flex-shrink-0 text-violet-400 bg-violet-950/30 border-violet-800/50"
+									title="Imported from CSV"
+								>
+									Imported
+								</span>
+							{/if}
+
 							<!-- Amount -->
 							<div
 								class="text-sm font-medium tabular-nums flex-shrink-0
@@ -166,3 +186,6 @@
 		on:cancel={() => (addTxOpen = false)}
 	/>
 </Modal>
+
+<!-- Import Transactions Modal -->
+<ImportTransactionsModal open={importOpen} on:close={() => (importOpen = false)} />

@@ -24,6 +24,7 @@ export interface Transaction {
 	plannedPaycheckDate?: string;
 	plannerMonth?: string;
 	notes?: string;
+	imported?: boolean;
 	createdAt: string;
 	updatedAt: string;
 }
