@@ -8,7 +8,6 @@
 	import BillRow from './BillRow.svelte';
 	import TransactionRow from './TransactionRow.svelte';
 	import Modal from '$lib/components/shared/Modal.svelte';
-	import AdHocTransactionForm from './AdHocTransactionForm.svelte';
 
 	export let paycheck: Paycheck;
 	export let paycheckDate: string;
@@ -16,7 +15,6 @@
 	export let monthTransactions: Transaction[];
 	export let unassignedBills: Bill[];
 
-	let addTxOpen = false;
 	let assignBillOpen = false;
 	let selectedBillId = '';
 
@@ -134,25 +132,14 @@
 			<span class="text-gray-300 font-medium">-{formatCurrency(totalOut)}</span>
 		</div>
 
-		<div class="flex gap-2">
-			{#if unassignedBills.length > 0}
-				<button
-					class="btn-secondary text-xs flex-1"
-					on:click={() => assignBillOpen = true}
-				>+ Bill</button>
-			{/if}
+		{#if unassignedBills.length > 0}
 			<button
-				class="btn-secondary text-xs flex-1"
-				on:click={() => addTxOpen = true}
-			>+ Transaction</button>
-		</div>
+				class="btn-secondary text-xs w-full"
+				on:click={() => (assignBillOpen = true)}
+			>+ Bill</button>
+		{/if}
 	</div>
 </div>
-
-<!-- Add Transaction Modal -->
-<Modal open={addTxOpen} title="Add Transaction" on:close={() => addTxOpen = false}>
-	<AdHocTransactionForm {plannerMonth} {paycheckDate} on:save={() => addTxOpen = false} on:cancel={() => addTxOpen = false} />
-</Modal>
 
 <!-- Assign Bill Modal -->
 <Modal open={assignBillOpen} title="Assign Bill" width="max-w-sm" on:close={() => assignBillOpen = false}>

@@ -5,6 +5,7 @@
 		{ href: '/planner', label: 'Planner', primary: true },
 		{ href: '/accounts', label: 'Accounts' },
 		{ href: '/bills', label: 'Bills' },
+		{ href: '/transactions', label: 'Transactions' },
 		{ href: '/budget', label: 'Budget' },
 		{ href: '/networth', label: 'Net Worth' }
 	];
