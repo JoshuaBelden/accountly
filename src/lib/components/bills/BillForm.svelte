@@ -23,10 +23,10 @@
 	function uid() { return crypto.randomUUID(); }
 
 	let budgetCategories: BudgetCategory[] = [];
-	budgetStore.categories.subscribe((c: BudgetCategory[]) => (budgetCategories = c));
+	budgetStore.categories.subscribe((c: BudgetCategory[]) => (budgetCategories = c.slice().sort((a, b) => a.name.localeCompare(b.name))));
 
 	// Subcategories for selected category
-	$: subcategories = budgetCategories.find((c) => c.id === categoryId)?.subcategories ?? [];
+	$: subcategories = (budgetCategories.find((c) => c.id === categoryId)?.subcategories ?? []).slice().sort((a, b) => a.name.localeCompare(b.name));
 
 	function submit() {
 		const bill: Bill = {

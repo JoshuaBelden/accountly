@@ -130,7 +130,7 @@
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 			<!-- Category list -->
 			<div class="lg:col-span-2 space-y-3">
-				{#each categories.sort((a, b) => a.sortOrder - b.sortOrder) as cat (cat.id)}
+				{#each categories.slice().sort((a, b) => a.name.localeCompare(b.name)) as cat (cat.id)}
 					<CategoryGroup
 						category={cat}
 						{monthTransactions}
