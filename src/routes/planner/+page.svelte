@@ -29,6 +29,30 @@
 	// All transactions for this month
 	$: monthTransactions = $transactionsStore.filter((t) => t.plannerMonth === month);
 
+	// Auto-assign monthly bills to paychecks based on due date when a month has no assignments yet
+	function autoAssignBillsForMonth() {
+		if (payPeriods.length === 0) return;
+		const monthlyBills = $billsStore.filter((b) => b.frequency === 'monthly');
+		for (const bill of monthlyBills) {
+			let bestPeriod = payPeriods[0];
+			if (bill.dueDayOfMonth) {
+				const dueDay = bill.dueDayOfMonth;
+				const before = payPeriods.filter((p) => parseInt(p.date.split('-')[2]) <= dueDay);
+				if (before.length > 0) bestPeriod = before[before.length - 1];
+			}
+			plannerStore.assign({
+				id: crypto.randomUUID(),
+				plannerMonth: month,
+				billId: bill.id,
+				paycheckDate: bestPeriod.date
+			});
+		}
+	}
+
+	$: if (payPeriods.length > 0 && monthAssignments.length === 0 && $billsStore.some((b) => b.frequency === 'monthly')) {
+		autoAssignBillsForMonth();
+	}
+
 	// Summary stats
 	$: totalBillsAssigned = monthAssignments.length;
 	$: totalBillsCleared = monthAssignments.filter((a) =>
@@ -100,7 +124,7 @@
 						</div>
 					{/each}
 				</div>
-				<p class="text-xs text-gray-500 mt-3">Assign these bills using the "+ Bill" button in each paycheck column.</p>
+				<p class="text-xs text-gray-500 mt-3">These bills have no due day set. Assign them using the "+ Bill" button in each paycheck column.</p>
 			</div>
 		{/if}
 	{/if}
