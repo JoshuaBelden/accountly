@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import type { BudgetCategory, Transaction } from '$lib/types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import BudgetVsActualBar from './BudgetVsActualBar.svelte';
@@ -9,7 +9,34 @@
 
 	const dispatch = createEventDispatcher();
 
-	let expanded = true;
+	const STORAGE_KEY = 'accountly:budgetExpanded';
+
+	function getExpandedSet(): Set<string> {
+		try {
+			const raw = localStorage.getItem(STORAGE_KEY);
+			return new Set(raw ? JSON.parse(raw) : []);
+		} catch {
+			return new Set();
+		}
+	}
+
+	function saveExpandedSet(set: Set<string>) {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
+	}
+
+	let expanded = false;
+
+	onMount(() => {
+		expanded = getExpandedSet().has(category.id);
+	});
+
+	function toggle() {
+		expanded = !expanded;
+		const set = getExpandedSet();
+		if (expanded) set.add(category.id);
+		else set.delete(category.id);
+		saveExpandedSet(set);
+	}
 
 	function getActual(categoryId: string, subcategoryId?: string): number {
 		return monthTransactions
@@ -54,7 +81,7 @@
 	<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 	<div
 		class="w-full flex items-center justify-between cursor-pointer"
-		on:click={() => expanded = !expanded}
+		on:click={toggle}
 	>
 		<div class="flex items-center gap-3">
 			<svg
@@ -104,7 +131,7 @@
 
 	{#if expanded && category.subcategories.length > 0}
 		<div class="mt-3 pl-4 border-l border-gray-700 space-y-2">
-			{#each category.subcategories as sub (sub.id)}
+			{#each category.subcategories.slice().sort((a, b) => a.name.localeCompare(b.name)) as sub (sub.id)}
 				{@const subActual = getActual(category.id, sub.id)}
 				<div class="space-y-1">
 					<div class="flex items-center justify-between text-sm">
