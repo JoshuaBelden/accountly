@@ -59,6 +59,8 @@
 				accountId: bill.accountId ?? '',
 				clearedStatus: 'cleared',
 				billId: bill.id,
+				categoryId: bill.categoryId,
+				subcategoryId: bill.subcategoryId,
 				plannerMonth: assignment.plannerMonth,
 				plannedPaycheckDate: assignment.paycheckDate,
 				createdAt: now,

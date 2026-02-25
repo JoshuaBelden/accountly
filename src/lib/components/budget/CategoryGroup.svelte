@@ -51,7 +51,7 @@
 				}
 				return (
 					t.categoryId === categoryId &&
-					(subcategoryId ? t.subcategoryId === subcategoryId : !t.subcategoryId)
+					(subcategoryId ? t.subcategoryId === subcategoryId : true)
 				);
 			})
 			.reduce((sum, t) => {
