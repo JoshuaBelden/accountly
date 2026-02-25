@@ -33,6 +33,11 @@ function createPlannerStore() {
 				list.map((a) => (a.id === assignmentId ? { ...a, transactionId } : a))
 			);
 		},
+		setOverrideAmount(assignmentId: string, amount: number | undefined) {
+			store.update((list) =>
+				list.map((a) => (a.id === assignmentId ? { ...a, overrideAmount: amount } : a))
+			);
+		},
 		getForMonth(month: string) {
 			let result: PlannedBillAssignment[] = [];
 			store.subscribe((list) => {

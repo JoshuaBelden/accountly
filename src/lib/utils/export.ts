@@ -5,9 +5,11 @@ export function exportToFile(envelope: ExportEnvelope): void {
 	const blob = new Blob([json], { type: 'application/json' });
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement('a');
-	const date = new Date().toISOString().split('T')[0];
+	const now = new Date();
+	const date = now.toISOString().split('T')[0];
+	const time = now.toTimeString().slice(0, 8).replace(/:/g, '-');
 	a.href = url;
-	a.download = `accountly-export-${date}.json`;
+	a.download = `accountly-export-${date}_${time}.json`;
 	a.click();
 	URL.revokeObjectURL(url);
 }

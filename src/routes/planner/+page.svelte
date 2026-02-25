@@ -72,15 +72,17 @@
 		</div>
 	{:else}
 		<!-- Paycheck columns -->
-		<div class="flex gap-4 overflow-x-auto pb-4">
+		<div class="flex gap-4 pb-4">
 			{#each payPeriods as { paycheck, date } (`${paycheck.id}-${date}`)}
-				<PaycheckColumn
-					{paycheck}
-					paycheckDate={date}
-					plannerMonth={month}
-					{monthTransactions}
-					{unassignedBills}
-				/>
+				<div class="flex-1 min-w-0">
+					<PaycheckColumn
+						{paycheck}
+						paycheckDate={date}
+						plannerMonth={month}
+						{monthTransactions}
+						{unassignedBills}
+					/>
+				</div>
 			{/each}
 		</div>
 

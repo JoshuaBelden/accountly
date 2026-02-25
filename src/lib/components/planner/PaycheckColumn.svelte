@@ -88,7 +88,7 @@
 	}
 </script>
 
-<div class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden flex flex-col min-w-[240px]">
+<div class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden flex flex-col w-full">
 	<!-- Header -->
 	<div class="px-4 py-3 bg-gray-750 border-b border-gray-700">
 		<div class="text-xs text-gray-500 uppercase tracking-wide">Paycheck</div>

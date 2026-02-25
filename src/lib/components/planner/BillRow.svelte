@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { tick } from 'svelte';
 	import type { PlannedBillAssignment, Bill, Transaction } from '$lib/types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { transactionsStore } from '$lib/stores/transactions.store';
@@ -8,18 +8,47 @@
 	export let assignment: PlannedBillAssignment;
 	export let bill: Bill;
 
-	const dispatch = createEventDispatcher();
-
 	$: transaction = assignment.transactionId
 		? $transactionsStore.find((t) => t.id === assignment.transactionId)
 		: null;
 
 	$: cleared = transaction?.clearedStatus === 'cleared';
 	$: amount = assignment.overrideAmount ?? bill.amount;
+	$: isOverridden =
+		assignment.overrideAmount !== undefined && assignment.overrideAmount !== bill.amount;
+
+	let editingAmount = false;
+	let inputValue = 0;
+	let amountInput: HTMLInputElement;
+
+	async function startEdit() {
+		inputValue = amount;
+		editingAmount = true;
+		await tick();
+		amountInput?.focus();
+		amountInput?.select();
+	}
+
+	function saveAmount() {
+		editingAmount = false;
+		if (isNaN(inputValue) || inputValue < 0) return;
+
+		const newOverride = inputValue === bill.amount ? undefined : inputValue;
+		plannerStore.setOverrideAmount(assignment.id, newOverride);
+
+		// Keep the linked transaction in sync if already cleared
+		if (transaction) {
+			transactionsStore.update(transaction.id, { amount: inputValue });
+		}
+	}
+
+	function handleAmountKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') saveAmount();
+		if (e.key === 'Escape') editingAmount = false;
+	}
 
 	function toggleCleared() {
 		if (!transaction) {
-			// Create a bill payment transaction
 			const now = new Date().toISOString();
 			const tx: Transaction = {
 				id: crypto.randomUUID(),
@@ -38,10 +67,7 @@
 			transactionsStore.add(tx);
 			plannerStore.linkTransaction(assignment.id, tx.id);
 		} else {
-			transactionsStore.clearStatus(
-				transaction.id,
-				cleared ? 'pending' : 'cleared'
-			);
+			transactionsStore.clearStatus(transaction.id, cleared ? 'pending' : 'cleared');
 		}
 	}
 
@@ -50,10 +76,16 @@
 	}
 </script>
 
-<div class="flex items-center gap-3 py-2 px-3 rounded-lg {cleared ? 'bg-emerald-950/30' : 'hover:bg-gray-800/50'} transition-colors group">
+<div
+	class="flex items-center gap-3 py-2 px-3 rounded-lg {cleared
+		? 'bg-emerald-950/30'
+		: 'hover:bg-gray-800/50'} transition-colors group"
+>
 	<button
 		on:click={toggleCleared}
-		class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors {cleared ? 'bg-emerald-500 border-emerald-500' : 'border-gray-500 hover:border-emerald-400'}"
+		class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors {cleared
+			? 'bg-emerald-500 border-emerald-500'
+			: 'border-gray-500 hover:border-emerald-400'}"
 		aria-label="Toggle cleared"
 	>
 		{#if cleared}
@@ -69,9 +101,39 @@
 		</div>
 	</div>
 
-	<div class="text-sm font-medium tabular-nums {cleared ? 'text-gray-500' : 'text-gray-200'}">
-		{formatCurrency(amount)}
-	</div>
+	{#if editingAmount}
+		<input
+			bind:this={amountInput}
+			bind:value={inputValue}
+			on:blur={saveAmount}
+			on:keydown={handleAmountKeydown}
+			type="number"
+			step="0.01"
+			min="0"
+			class="w-24 text-sm text-right bg-gray-700 border border-blue-500 rounded px-1.5 py-0.5 text-gray-100 focus:outline-none tabular-nums"
+		/>
+	{:else}
+		<div class="flex items-center gap-1.5">
+			{#if isOverridden}
+				<span class="text-xs text-gray-600 tabular-nums line-through"
+					>{formatCurrency(bill.amount)}</span
+				>
+			{/if}
+			<button
+				on:click={startEdit}
+				title={isOverridden
+					? `Expected: ${formatCurrency(bill.amount)} — click to edit`
+					: 'Click to set actual amount'}
+				class="text-sm font-medium tabular-nums transition-colors {cleared
+					? 'text-gray-500'
+					: isOverridden
+						? 'text-amber-400 hover:text-amber-300'
+						: 'text-gray-200 hover:text-blue-400'}"
+			>
+				{formatCurrency(amount)}
+			</button>
+		</div>
+	{/if}
 
 	<button
 		on:click={unassign}

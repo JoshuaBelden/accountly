@@ -2,9 +2,9 @@
 	import { page } from '$app/stores';
 
 	const navItems = [
+		{ href: '/planner', label: 'Planner', primary: true },
 		{ href: '/accounts', label: 'Accounts' },
 		{ href: '/bills', label: 'Bills' },
-		{ href: '/planner', label: 'Planner' },
 		{ href: '/budget', label: 'Budget' },
 		{ href: '/networth', label: 'Net Worth' }
 	];
@@ -16,7 +16,9 @@
 			href={item.href}
 			class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {$page.url.pathname === item.href || $page.url.pathname.startsWith(item.href + '/')
 				? 'bg-indigo-600 text-white'
-				: 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'}"
+				: item.primary
+					? 'text-indigo-300 border border-indigo-700 hover:text-white hover:bg-indigo-700'
+					: 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'}"
 		>
 			{item.label}
 		</a>
