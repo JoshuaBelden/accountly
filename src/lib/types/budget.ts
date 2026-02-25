@@ -4,6 +4,7 @@ export interface BudgetSubcategory {
 	name: string;
 	monthlyBudget: number;
 	notes?: string;
+	hints?: string;
 	sortOrder: number;
 }
 
@@ -13,6 +14,7 @@ export interface BudgetCategory {
 	monthlyBudget: number;
 	subcategories: BudgetSubcategory[];
 	notes?: string;
+	hints?: string;
 	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;

@@ -3,6 +3,7 @@
 	import { get } from 'svelte/store';
 	import { transactionsStore } from '$lib/stores/transactions.store';
 	import { accountsStore, checkingAccounts, savingsAccounts } from '$lib/stores/accounts.store';
+	import { budgetStore } from '$lib/stores/budget.store';
 	import Modal from '$lib/components/shared/Modal.svelte';
 	import { parseCsv, type ParsedCsvRow } from '$lib/utils/csvImport';
 	import { formatCurrency } from '$lib/utils/currency';
@@ -108,6 +109,24 @@
 		selected = parsedRows.map((r) => !r.isDuplicate);
 	}
 
+	function matchCategory(description: string): { categoryId: string; subcategoryId?: string } | undefined {
+		const categories = get(budgetStore.categories);
+		for (const cat of categories) {
+			for (const sub of cat.subcategories) {
+				if (!sub.hints) continue;
+				try {
+					if (new RegExp(sub.hints, 'i').test(description))
+						return { categoryId: cat.id, subcategoryId: sub.id };
+				} catch { /* invalid regex — skip */ }
+			}
+			if (!cat.hints) continue;
+			try {
+				if (new RegExp(cat.hints, 'i').test(description)) return { categoryId: cat.id };
+			} catch { /* invalid regex — skip */ }
+		}
+		return undefined;
+	}
+
 	function importSelected() {
 		if (!selectedAccountId) {
 			error = 'Please select an account.';
@@ -116,6 +135,7 @@
 		const now = new Date().toISOString();
 		parsedRows.forEach((row, i) => {
 			if (!selected[i]) return;
+			const match = matchCategory(row.description);
 			const tx: Transaction = {
 				id: crypto.randomUUID(),
 				date: row.date,
@@ -125,6 +145,7 @@
 				accountId: selectedAccountId,
 				clearedStatus: 'cleared',
 				imported: true,
+				...match,
 				createdAt: now,
 				updatedAt: now
 			};
