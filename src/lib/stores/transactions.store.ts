@@ -26,6 +26,10 @@ function createTransactionsStore() {
 		remove(id: string) {
 			store.update((list) => list.filter((t) => t.id !== id));
 		},
+		removeMany(ids: string[]) {
+			const set = new Set(ids);
+			store.update((list) => list.filter((t) => !set.has(t.id)));
+		},
 		clearStatus(id: string, status: Transaction['clearedStatus']) {
 			store.update((list) =>
 				list.map((t) => (t.id === id ? { ...t, clearedStatus: status, updatedAt: now() } : t))

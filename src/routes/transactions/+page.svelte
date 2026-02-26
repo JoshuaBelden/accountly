@@ -10,6 +10,8 @@
 	import ImportTransactionsModal from '$lib/components/transactions/ImportTransactionsModal.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
 
+	let pageSize = 20;
+
 	let addTxOpen = false;
 	let importOpen = false;
 
@@ -30,6 +32,52 @@
 	$: accountTransactions = $transactionsStore
 		.filter((t) => t.accountId === selectedAccountId && t.clearedStatus === 'cleared')
 		.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+
+	// Pagination
+	let currentPage = 1;
+	$: totalPages = Math.max(1, Math.ceil(accountTransactions.length / pageSize));
+	$: if (currentPage > totalPages) currentPage = 1;
+
+	// Reset page + selection when switching accounts
+	let prevAccountId = '';
+	$: if (selectedAccountId !== prevAccountId) {
+		prevAccountId = selectedAccountId;
+		currentPage = 1;
+		selectedIds = new Set();
+	}
+
+	$: pageStart = (currentPage - 1) * pageSize;
+	$: pagedTransactions = accountTransactions.slice(pageStart, pageStart + pageSize);
+
+	// Selection
+	let selectedIds: Set<string> = new Set();
+
+	$: allOnPageSelected =
+		pagedTransactions.length > 0 && pagedTransactions.every((t) => selectedIds.has(t.id));
+
+	function toggleSelectAll() {
+		if (allOnPageSelected) {
+			const next = new Set(selectedIds);
+			pagedTransactions.forEach((t) => next.delete(t.id));
+			selectedIds = next;
+		} else {
+			const next = new Set(selectedIds);
+			pagedTransactions.forEach((t) => next.add(t.id));
+			selectedIds = next;
+		}
+	}
+
+	function toggleRow(id: string) {
+		const next = new Set(selectedIds);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		selectedIds = next;
+	}
+
+	function deleteSelected() {
+		transactionsStore.removeMany([...selectedIds]);
+		selectedIds = new Set();
+	}
 
 	// Budget categories for display
 	let budgetCategories: BudgetCategory[] = [];
@@ -106,13 +154,54 @@
 				<p class="text-sm mt-1">Add a transaction using the button above.</p>
 			</div>
 		{:else}
+			<!-- Batch action bar -->
+			<div class="flex items-center justify-between min-h-[2rem]">
+				<span class="text-sm text-gray-400">
+					{accountTransactions.length} transaction{accountTransactions.length === 1 ? '' : 's'}
+					· Page {currentPage} of {totalPages}
+				</span>
+				{#if selectedIds.size > 0}
+					<button
+						on:click={deleteSelected}
+						class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-400 bg-red-950/30 border border-red-800/50 rounded hover:bg-red-900/40 transition-colors"
+					>
+						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+						</svg>
+						Delete {selectedIds.size} selected
+					</button>
+				{/if}
+			</div>
+
 			<div class="card overflow-hidden p-0">
+				<!-- Header row with select-all -->
+				<div class="flex items-center gap-4 px-4 py-2 border-b border-gray-700 bg-gray-800/50">
+					<input
+						type="checkbox"
+						checked={allOnPageSelected}
+						on:change={toggleSelectAll}
+						class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-indigo-500 cursor-pointer flex-shrink-0"
+						title="Select all on this page"
+					/>
+					<span class="text-xs text-gray-500 uppercase tracking-wide">Select page</span>
+				</div>
+
 				<div class="divide-y divide-gray-700/50">
-					{#each accountTransactions as tx (tx.id)}
+					{#each pagedTransactions as tx (tx.id)}
 						{@const catLabel = getCategoryLabel(tx.categoryId, tx.subcategoryId)}
+						{@const isSelected = selectedIds.has(tx.id)}
 						<div
-							class="flex items-center gap-4 px-4 py-3 hover:bg-gray-800/30 transition-colors group"
+							class="flex items-center gap-4 px-4 py-3 transition-colors group
+								{isSelected ? 'bg-indigo-950/20' : 'hover:bg-gray-800/30'}"
 						>
+							<!-- Checkbox -->
+							<input
+								type="checkbox"
+								checked={isSelected}
+								on:change={() => toggleRow(tx.id)}
+								class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-indigo-500 cursor-pointer flex-shrink-0"
+							/>
+
 							<!-- Date -->
 							<div class="text-sm text-gray-400 tabular-nums w-20 flex-shrink-0">
 								{formatDateShort(tx.date)}
@@ -174,6 +263,72 @@
 					{/each}
 				</div>
 			</div>
+
+			<!-- Pagination controls -->
+			{#if totalPages > 1 || accountTransactions.length > 20}
+				<div class="flex items-center justify-between gap-4">
+				<select
+					bind:value={pageSize}
+					on:change={() => (currentPage = 1)}
+					class="text-sm bg-gray-800 border border-gray-700 text-gray-300 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+				>
+					<option value={20}>20 / page</option>
+					<option value={100}>100 / page</option>
+					<option value={500}>500 / page</option>
+				</select>
+				<div class="flex items-center gap-2">
+					<button
+						on:click={() => (currentPage = 1)}
+						disabled={currentPage === 1}
+						class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+						aria-label="First page"
+					>
+						«
+					</button>
+					<button
+						on:click={() => (currentPage -= 1)}
+						disabled={currentPage === 1}
+						class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+						aria-label="Previous page"
+					>
+						‹
+					</button>
+
+					{#each Array.from({ length: totalPages }, (_, i) => i + 1) as page}
+						{#if totalPages <= 7 || page === 1 || page === totalPages || Math.abs(page - currentPage) <= 2}
+							<button
+								on:click={() => (currentPage = page)}
+								class="w-8 h-8 text-sm rounded transition-colors
+									{currentPage === page
+										? 'bg-indigo-600 text-white'
+										: 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}"
+							>
+								{page}
+							</button>
+						{:else if Math.abs(page - currentPage) === 3}
+							<span class="text-gray-600 px-1">…</span>
+						{/if}
+					{/each}
+
+					<button
+						on:click={() => (currentPage += 1)}
+						disabled={currentPage === totalPages}
+						class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+						aria-label="Next page"
+					>
+						›
+					</button>
+					<button
+						on:click={() => (currentPage = totalPages)}
+						disabled={currentPage === totalPages}
+						class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+						aria-label="Last page"
+					>
+						»
+					</button>
+				</div>
+				</div>
+			{/if}
 		{/if}
 	{/if}
 </div>

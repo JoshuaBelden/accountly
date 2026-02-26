@@ -12,4 +12,5 @@ A personal finance manager for the average person.
 - Budget page should show uncategorized transactions
 - Planner should show the budget's spending breakdown
 - Transaction amount should be fixed width
-- Add a purge transact
+- Add a purge transaction
+- budget needs a way to re-evaluate hints
