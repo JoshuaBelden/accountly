@@ -4,9 +4,9 @@ A personal finance manager for the average person.
 
 ## TODO
 
-- Transactions need to auto record bills
-- Imported transactions should allow importing duplicates, but they update the transaction not duplicate it
 - Budget page should show uncategorized transactions
+- Imported transactions should allow importing duplicates, but they update the transaction not duplicate it
+- Transactions need to auto record bills
 - Planner should show the budget's spending breakdown
 - Transaction amount should be fixed width
 - Add a purge transaction

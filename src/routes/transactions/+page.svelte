@@ -9,6 +9,7 @@
 	import TransactionForm from '$lib/components/transactions/TransactionForm.svelte';
 	import ImportTransactionsModal from '$lib/components/transactions/ImportTransactionsModal.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
+	import { page } from '$app/stores';
 
 	let pageSize = 20;
 
@@ -33,9 +34,63 @@
 		.filter((t) => t.accountId === selectedAccountId && t.clearedStatus === 'cleared')
 		.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
 
+	// Category / uncategorized filter from URL params
+	$: filterCategoryId = $page.url.searchParams.get('categoryId') || null;
+	$: filterSubcategoryId = $page.url.searchParams.get('subcategoryId') || null;
+	$: filterMonth = $page.url.searchParams.get('month') || null;
+	$: filterUncategorized = $page.url.searchParams.get('uncategorized') === 'true';
+	$: isCategoryFilter = !!filterCategoryId || filterUncategorized;
+
+	$: filteredTransactions = (() => {
+		let txs = $transactionsStore.filter((t) => t.clearedStatus === 'cleared');
+		if (filterMonth) {
+			txs = txs.filter((t) => t.plannerMonth === filterMonth || t.date.startsWith(filterMonth));
+		}
+		if (filterUncategorized) {
+			txs = txs.filter((t) => t.type !== 'income' && !t.categoryId && (!t.splits || t.splits.length === 0));
+		} else if (filterCategoryId) {
+			txs = txs.filter((t) => {
+				if (t.splits?.length) {
+					return t.splits.some(
+						(s) => s.categoryId === filterCategoryId &&
+							(!filterSubcategoryId || s.subcategoryId === filterSubcategoryId)
+					);
+				}
+				return t.categoryId === filterCategoryId &&
+					(!filterSubcategoryId || t.subcategoryId === filterSubcategoryId);
+			});
+		}
+		return txs.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+	})();
+
+	$: activeTransactions = isCategoryFilter ? filteredTransactions : accountTransactions;
+
+	// Reset page + selection when filter changes
+	$: filterKey = `${filterCategoryId}|${filterSubcategoryId}|${filterUncategorized}|${filterMonth}`;
+	let prevFilterKey = '';
+	$: if (filterKey !== prevFilterKey) {
+		prevFilterKey = filterKey;
+		currentPage = 1;
+		selectedIds = new Set();
+	}
+
+	$: filterLabel = (() => {
+		if (filterUncategorized) return 'Uncategorized transactions';
+		if (filterCategoryId) {
+			const cat = budgetCategories.find((c) => c.id === filterCategoryId);
+			if (!cat) return 'Category';
+			if (filterSubcategoryId) {
+				const sub = cat.subcategories.find((s) => s.id === filterSubcategoryId);
+				return sub ? `${cat.name} › ${sub.name}` : cat.name;
+			}
+			return cat.name;
+		}
+		return '';
+	})();
+
 	// Pagination
 	let currentPage = 1;
-	$: totalPages = Math.max(1, Math.ceil(accountTransactions.length / pageSize));
+	$: totalPages = Math.max(1, Math.ceil(activeTransactions.length / pageSize));
 	$: if (currentPage > totalPages) currentPage = 1;
 
 	// Reset page + selection when switching accounts
@@ -47,7 +102,7 @@
 	}
 
 	$: pageStart = (currentPage - 1) * pageSize;
-	$: pagedTransactions = accountTransactions.slice(pageStart, pageStart + pageSize);
+	$: pagedTransactions = activeTransactions.slice(pageStart, pageStart + pageSize);
 
 	// Selection
 	let selectedIds: Set<string> = new Set();
@@ -117,8 +172,9 @@
 <div class="max-w-4xl mx-auto space-y-6">
 	<div class="flex items-center justify-between">
 		<h1 class="text-2xl font-bold text-gray-100">Transactions</h1>
-		{#if selectedAccount}
-			<div class="flex gap-2">
+		<div class="flex gap-2">
+			<a href="/transactions?uncategorized=true" class="btn-secondary">Uncategorized</a>
+			{#if selectedAccount && !isCategoryFilter}
 				<button class="btn-secondary" on:click={() => (importOpen = true)}>
 					<svg class="w-4 h-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 						<path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -126,8 +182,8 @@
 					Import CSV
 				</button>
 				<button class="btn-primary" on:click={() => (addTxOpen = true)}>+ Add Transaction</button>
-			</div>
-		{/if}
+			{/if}
+		</div>
 	</div>
 
 	{#if transactionAccounts.length === 0}
@@ -136,33 +192,58 @@
 			description="Add a checking or savings account to track transactions."
 		/>
 	{:else}
-		<!-- Account sub-navigation -->
-		<div class="flex gap-1 border-b border-gray-700">
-			{#each transactionAccounts as account (account.id)}
-				<button
-					on:click={() => (selectedAccountId = account.id)}
-					class="px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors
-						{selectedAccountId === account.id
-							? 'border-indigo-500 text-indigo-300 bg-gray-800/50'
-							: 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'}"
-				>
-					{account.name}
-					<span class="ml-1.5 text-xs opacity-60 capitalize">({account.type})</span>
-				</button>
-			{/each}
-		</div>
+		<!-- Category filter banner -->
+		{#if isCategoryFilter}
+			<div class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-indigo-950/40 border border-indigo-800/50 text-sm">
+				<svg class="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+				</svg>
+				<span class="text-indigo-200">Filtered by: <strong>{filterLabel}</strong></span>
+				{#if filterMonth}
+					<span class="text-indigo-400">· {filterMonth}</span>
+				{/if}
+				<a href="/transactions" class="ml-auto flex items-center gap-1 text-indigo-400 hover:text-indigo-200 transition-colors">
+					<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+					Clear filter
+				</a>
+			</div>
+		{/if}
+
+		<!-- Account sub-navigation (hidden when category filter is active) -->
+		{#if !isCategoryFilter}
+			<div class="flex gap-1 border-b border-gray-700">
+				{#each transactionAccounts as account (account.id)}
+					<button
+						on:click={() => (selectedAccountId = account.id)}
+						class="px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors
+							{selectedAccountId === account.id
+								? 'border-indigo-500 text-indigo-300 bg-gray-800/50'
+								: 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'}"
+					>
+						{account.name}
+						<span class="ml-1.5 text-xs opacity-60 capitalize">({account.type})</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
 
 		<!-- Transaction list -->
-		{#if accountTransactions.length === 0}
+		{#if activeTransactions.length === 0}
 			<div class="text-center py-16 text-gray-500">
-				<p>No cleared transactions for this account.</p>
-				<p class="text-sm mt-1">Add a transaction using the button above.</p>
+				{#if isCategoryFilter}
+					<p>No transactions found for this filter.</p>
+				{:else}
+					<p>No cleared transactions for this account.</p>
+					<p class="text-sm mt-1">Add a transaction using the button above.</p>
+				{/if}
 			</div>
 		{:else}
 			<!-- Batch action bar -->
 			<div class="flex items-center justify-between min-h-[2rem]">
 				<span class="text-sm text-gray-400">
-					{accountTransactions.length} transaction{accountTransactions.length === 1 ? '' : 's'}
+					{activeTransactions.length} transaction{activeTransactions.length === 1 ? '' : 's'}
 					· Page {currentPage} of {totalPages}
 				</span>
 				{#if selectedIds.size > 0}
@@ -361,7 +442,7 @@
 			</div>
 
 			<!-- Pagination controls -->
-			{#if totalPages > 1 || accountTransactions.length > 20}
+			{#if totalPages > 1 || activeTransactions.length > 20}
 				<div class="flex items-center justify-between gap-4">
 				<select
 					bind:value={pageSize}

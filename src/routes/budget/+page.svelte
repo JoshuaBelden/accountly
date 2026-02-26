@@ -134,6 +134,9 @@
 			{#if reapplyResult}
 				<span class="text-sm text-emerald-400">{reapplyResult}</span>
 			{/if}
+			<a href="/transactions?uncategorized=true&month={month}" class="btn-secondary">
+				Uncategorized
+			</a>
 			<button class="btn-secondary" on:click={reapplyHints} title="Apply hints to all uncategorized transactions">
 				Update Transactions
 			</button>
@@ -177,6 +180,7 @@
 					<CategoryGroup
 						category={cat}
 						{monthTransactions}
+						{month}
 						on:edit={openEdit}
 						on:delete={handleDelete}
 					/>

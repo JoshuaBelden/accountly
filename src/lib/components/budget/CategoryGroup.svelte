@@ -6,6 +6,7 @@
 
 	export let category: BudgetCategory;
 	export let monthTransactions: Transaction[];
+	export let month: string = '';
 
 	const dispatch = createEventDispatcher();
 
@@ -92,7 +93,11 @@
 			>
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 			</svg>
-			<span class="font-medium text-gray-100">{category.name}</span>
+			<a
+				href="/transactions?categoryId={category.id}{month ? '&month=' + month : ''}"
+				on:click|stopPropagation
+				class="font-medium text-gray-100 hover:text-indigo-300 transition-colors"
+			>{category.name}</a>
 		</div>
 		<div class="flex items-center gap-4 text-sm">
 			<span class="{over ? 'text-red-400' : 'text-gray-300'} tabular-nums">
@@ -135,7 +140,10 @@
 				{@const subActual = getActual(category.id, sub.id)}
 				<div class="space-y-1">
 					<div class="flex items-center justify-between text-sm">
-						<span class="text-gray-400">{sub.name}</span>
+						<a
+						href="/transactions?categoryId={category.id}&subcategoryId={sub.id}{month ? '&month=' + month : ''}"
+						class="text-gray-400 hover:text-indigo-300 transition-colors"
+					>{sub.name}</a>
 						<div class="flex gap-2 tabular-nums">
 							<span class="{subActual > sub.monthlyBudget ? 'text-red-400' : 'text-gray-300'}">{formatCurrency(subActual)}</span>
 							<span class="text-gray-600">/</span>
