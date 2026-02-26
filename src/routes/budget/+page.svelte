@@ -6,7 +6,7 @@
   import Modal from "$lib/components/shared/Modal.svelte"
   import { budgetStore } from "$lib/stores/budget.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
-  import type { BudgetCategory } from "$lib/types"
+  import type { BudgetCategory, Transaction } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
   import { addMonths, currentMonth, formatMonth } from "$lib/utils/date"
   import { get } from "svelte/store"
@@ -44,8 +44,8 @@
 
   $: monthTransactions = $transactionsStore.filter(t => t.plannerMonth === month || t.date.startsWith(month))
 
-  function getActualForCategory(cat: BudgetCategory): number {
-    return monthTransactions
+  function getActualForCategory(cat: BudgetCategory, transactions: Transaction[]): number {
+    return transactions
       .filter(t => {
         if (t.type === "income") return false
         if (t.splits?.length) return t.splits.some(s => s.categoryId === cat.id)
@@ -60,14 +60,14 @@
   }
 
   $: totalBudget = categories.reduce((s, c) => s + c.monthlyBudget, 0)
-  $: totalActual = categories.reduce((s, c) => s + getActualForCategory(c), 0)
+  $: totalActual = categories.reduce((sum, cat) => sum + getActualForCategory(cat, monthTransactions), 0)
 
   $: chartData = categories
     .map((cat, i) => {
       const colors = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16"]
       return {
         label: cat.name,
-        amount: getActualForCategory(cat),
+        amount: getActualForCategory(cat, monthTransactions),
         color: colors[i % colors.length],
       }
     })

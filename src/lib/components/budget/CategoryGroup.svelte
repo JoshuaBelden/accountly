@@ -40,8 +40,8 @@
     saveExpandedSet(set)
   }
 
-  function getActual(categoryId: string, subcategoryId?: string): number {
-    return monthTransactions
+  function getActual(categoryId: string, subcategoryId: string | undefined, transactions: Transaction[]): number {
+    return transactions
       .filter(t => {
         if (t.type === "income") return false
         if (t.splits && t.splits.length > 0) {
@@ -64,7 +64,7 @@
       }, 0)
   }
 
-  $: categoryActual = getActual(category.id)
+  $: categoryActual = getActual(category.id, undefined, monthTransactions)
   $: categoryBudget = category.monthlyBudget
   $: over = categoryActual > categoryBudget
 </script>
@@ -127,7 +127,7 @@
   {#if expanded && category.subcategories.length > 0}
     <div class="mt-3 pl-4 border-l border-gray-700 space-y-2">
       {#each category.subcategories.slice().sort((a, b) => a.name.localeCompare(b.name)) as sub (sub.id)}
-        {@const subActual = getActual(category.id, sub.id)}
+        {@const subActual = getActual(category.id, sub.id, monthTransactions)}
         <div class="space-y-1">
           <div class="flex items-center justify-between text-sm">
             <a

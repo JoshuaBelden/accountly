@@ -26,7 +26,9 @@
       "Bash(npx prettier --write src/lib/stores/search.store.ts src/lib/components/layout/GlobalSearch.svelte src/lib/components/layout/TopNav.svelte src/routes/+layout.svelte)",
       "Bash(npx prettier --write src/lib/stores/search.store.ts)",
       "Bash(npx prettier --write src/lib/utils/export.ts src/routes/settings/+page.svelte)",
-      "Bash(npx prettier --write src/lib/utils/export.ts)"
+      "Bash(npx prettier --write src/lib/utils/export.ts)",
+      "Bash(npx prettier --write src/routes/budget/+page.svelte)",
+      "Bash(npx --prefix /Users/joshuabelden/Code/accountly prettier --write /Users/joshuabelden/Code/accountly/src/routes/budget/+page.svelte)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components"
