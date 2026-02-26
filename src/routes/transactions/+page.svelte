@@ -92,7 +92,7 @@
 
 	// Pagination
 	let currentPage = 1;
-	$: totalPages = Math.max(1, Math.ceil(activeTransactions.length / pageSize));
+	$: totalPages = Math.max(1, Math.ceil(searchFiltered.length / pageSize));
 	$: if (currentPage > totalPages) currentPage = 1;
 
 	// Reset page + selection when switching accounts
@@ -104,7 +104,7 @@
 	}
 
 	$: pageStart = (currentPage - 1) * pageSize;
-	$: pagedTransactions = activeTransactions.slice(pageStart, pageStart + pageSize);
+	$: pagedTransactions = searchFiltered.slice(pageStart, pageStart + pageSize);
 
 	// Selection
 	let selectedIds: Set<string> = new Set();
@@ -188,6 +188,21 @@
 	function toggleExpand(id: string) {
 		expandedId = expandedId === id ? null : id;
 	}
+
+	let searchQuery = '';
+
+	$: searchFiltered = (() => {
+		const q = searchQuery.trim().toLowerCase();
+		if (!q) return activeTransactions;
+		return activeTransactions.filter(
+			(t) =>
+				t.description.toLowerCase().includes(q) ||
+				(t.notes && t.notes.toLowerCase().includes(q))
+		);
+	})();
+
+	// Reset page when search changes
+	$: if (searchQuery !== undefined) currentPage = 1;
 </script>
 
 <div class="max-w-4xl mx-auto space-y-6">
@@ -250,10 +265,37 @@
 			</div>
 		{/if}
 
+		<!-- Search -->
+		<div class="relative">
+			<svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
+			</svg>
+			<input
+				type="text"
+				bind:value={searchQuery}
+				placeholder="Search transactions…"
+				class="w-full pl-9 pr-9 py-2 text-sm bg-gray-800 border border-gray-700 text-gray-200 rounded-lg placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+			/>
+			{#if searchQuery}
+				<button
+					on:click={() => (searchQuery = '')}
+					class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+					aria-label="Clear search"
+				>
+					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+			{/if}
+		</div>
+
 		<!-- Transaction list -->
-		{#if activeTransactions.length === 0}
+		{#if searchFiltered.length === 0}
 			<div class="text-center py-16 text-gray-500">
-				{#if isCategoryFilter}
+				{#if searchQuery.trim()}
+					<p>No transactions match "<span class="text-gray-300">{searchQuery.trim()}</span>".</p>
+					<button on:click={() => (searchQuery = '')} class="text-sm mt-2 text-indigo-400 hover:text-indigo-200 transition-colors">Clear search</button>
+				{:else if isCategoryFilter}
 					<p>No transactions found for this filter.</p>
 				{:else}
 					<p>No cleared transactions for this account.</p>
@@ -264,7 +306,8 @@
 			<!-- Batch action bar -->
 			<div class="flex items-center justify-between min-h-[2rem]">
 				<span class="text-sm text-gray-400">
-					{activeTransactions.length} transaction{activeTransactions.length === 1 ? '' : 's'}
+					{searchFiltered.length} transaction{searchFiltered.length === 1 ? '' : 's'}
+					{#if searchQuery.trim()}(filtered){/if}
 					· Page {currentPage} of {totalPages}
 				</span>
 				{#if selectedIds.size > 0}
