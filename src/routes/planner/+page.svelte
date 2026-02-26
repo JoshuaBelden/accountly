@@ -31,11 +31,11 @@
 	// All transactions for this month
 	$: monthTransactions = $transactionsStore.filter((t) => t.plannerMonth === month);
 
-	// Auto-assign monthly bills to paychecks based on due date when a month has no assignments yet
+	// Auto-assign unassigned auto-pay bills to paychecks based on due date
 	function autoAssignBillsForMonth() {
 		if (payPeriods.length === 0) return;
-		const monthlyBills = $billsStore.filter((b) => b.frequency === 'monthly');
-		for (const bill of monthlyBills) {
+		const toAssign = $billsStore.filter((b) => b.autoPay && !assignedBillIds.has(b.id));
+		for (const bill of toAssign) {
 			let bestPeriod = payPeriods[0];
 			if (bill.dueDayOfMonth) {
 				const dueDay = bill.dueDayOfMonth;
@@ -51,9 +51,7 @@
 		}
 	}
 
-	$: if (payPeriods.length > 0 && monthAssignments.length === 0 && $billsStore.some((b) => b.frequency === 'monthly')) {
-		autoAssignBillsForMonth();
-	}
+	$: unassignedAutoPay = $billsStore.filter((b) => b.autoPay && !assignedBillIds.has(b.id));
 
 	// Budget categories for spending chart
 	let categories: BudgetCategory[] = [];
@@ -104,11 +102,18 @@
 			</button>
 		</div>
 
-		{#if totalBillsAssigned > 0}
-			<div class="text-sm text-gray-400">
-				{totalBillsCleared}/{totalBillsAssigned} bills cleared
-			</div>
-		{/if}
+		<div class="flex items-center gap-3">
+			{#if unassignedAutoPay.length > 0 && payPeriods.length > 0}
+				<button class="btn-secondary" on:click={autoAssignBillsForMonth}>
+					Auto-assign ({unassignedAutoPay.length})
+				</button>
+			{/if}
+			{#if totalBillsAssigned > 0}
+				<div class="text-sm text-gray-400">
+					{totalBillsCleared}/{totalBillsAssigned} bills cleared
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	{#if $paychecksStore.length === 0}
