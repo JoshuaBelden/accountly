@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { get } from 'svelte/store';
 	import { budgetStore } from '$lib/stores/budget.store';
 	import { transactionsStore } from '$lib/stores/transactions.store';
 	import CategoryGroup from '$lib/components/budget/CategoryGroup.svelte';
@@ -78,6 +79,40 @@
 			deleteTarget = null;
 		}
 	}
+
+	let reapplyResult: string | null = null;
+
+	function matchCategory(description: string): { categoryId: string; subcategoryId?: string } | undefined {
+		for (const cat of categories) {
+			for (const sub of cat.subcategories) {
+				if (!sub.hints) continue;
+				try {
+					if (new RegExp(sub.hints, 'i').test(description))
+						return { categoryId: cat.id, subcategoryId: sub.id };
+				} catch { /* invalid regex — skip */ }
+			}
+			if (!cat.hints) continue;
+			try {
+				if (new RegExp(cat.hints, 'i').test(description)) return { categoryId: cat.id };
+			} catch { /* invalid regex — skip */ }
+		}
+		return undefined;
+	}
+
+	function reapplyHints() {
+		const txs = get(transactionsStore);
+		let updated = 0;
+		for (const tx of txs) {
+			if (tx.categoryId || !tx.description) continue;
+			const match = matchCategory(tx.description);
+			if (match) {
+				transactionsStore.update(tx.id, { categoryId: match.categoryId, subcategoryId: match.subcategoryId });
+				updated++;
+			}
+		}
+		reapplyResult = updated === 0 ? 'No uncategorized transactions matched.' : `Updated ${updated} transaction${updated === 1 ? '' : 's'}.`;
+		setTimeout(() => (reapplyResult = null), 4000);
+	}
 </script>
 
 <div class="max-w-5xl mx-auto space-y-6">
@@ -95,12 +130,20 @@
 				</svg>
 			</button>
 		</div>
-		<button class="btn-primary" on:click={openAdd}>
-			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-			</svg>
-			Add Category
-		</button>
+		<div class="flex items-center gap-3">
+			{#if reapplyResult}
+				<span class="text-sm text-emerald-400">{reapplyResult}</span>
+			{/if}
+			<button class="btn-secondary" on:click={reapplyHints} title="Apply hints to all uncategorized transactions">
+				Re-apply Hints
+			</button>
+			<button class="btn-primary" on:click={openAdd}>
+				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+				</svg>
+				Add Category
+			</button>
+		</div>
 	</div>
 
 	{#if categories.length === 0}
