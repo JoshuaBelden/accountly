@@ -4,7 +4,7 @@
 
   const navItems = [
     { href: "/planner", label: "Planner", primary: true },
-    { href: "/budget", label: "Budget" },
+    { href: "/budget", label: "Budget", primary: true },
     { href: "/accounts", label: "Accounts" },
     { href: "/bills", label: "Bills" },
     { href: "/transactions", label: "Transactions" },

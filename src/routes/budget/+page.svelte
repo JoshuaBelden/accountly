@@ -59,8 +59,59 @@
       }, 0)
   }
 
+  function getActualForSubcategory(categoryId: string, subcategoryId: string, transactions: Transaction[]): number {
+    return transactions
+      .filter(t => {
+        if (t.type === "income") return false
+        if (t.splits?.length) return t.splits.some(s => s.categoryId === categoryId && s.subcategoryId === subcategoryId)
+        return t.categoryId === categoryId && t.subcategoryId === subcategoryId
+      })
+      .reduce((sum, t) => {
+        if (t.splits?.length) {
+          return (
+            sum +
+            t.splits
+              .filter(s => s.categoryId === categoryId && s.subcategoryId === subcategoryId)
+              .reduce((ss, s) => ss + s.amount, 0)
+          )
+        }
+        return sum + t.amount
+      }, 0)
+  }
+
   $: totalBudget = categories.reduce((s, c) => s + c.monthlyBudget, 0)
   $: totalActual = categories.reduce((sum, cat) => sum + getActualForCategory(cat, monthTransactions), 0)
+  $: totalIncome = monthTransactions.filter(t => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
+  $: unbudgeted = totalIncome - totalBudget
+
+  interface OverageItem {
+    label: string
+    overage: number
+    categoryId: string
+    subcategoryId?: string
+  }
+
+  $: topOverages = (() => {
+    const items: OverageItem[] = []
+    for (const cat of categories) {
+      const actual = getActualForCategory(cat, monthTransactions)
+      if (actual > cat.monthlyBudget) {
+        items.push({ label: cat.name, overage: actual - cat.monthlyBudget, categoryId: cat.id })
+      }
+      for (const sub of cat.subcategories) {
+        const subActual = getActualForSubcategory(cat.id, sub.id, monthTransactions)
+        if (subActual > sub.monthlyBudget) {
+          items.push({
+            label: `${cat.name} › ${sub.name}`,
+            overage: subActual - sub.monthlyBudget,
+            categoryId: cat.id,
+            subcategoryId: sub.id,
+          })
+        }
+      }
+    }
+    return items.sort((a, b) => b.overage - a.overage).slice(0, 5)
+  })()
 
   $: chartData = categories
     .map((cat, i) => {
@@ -178,6 +229,13 @@
       <div class="card text-center">
         <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Budgeted</div>
         <div class="text-xl font-bold text-gray-100 tabular-nums">{formatCurrency(totalBudget)}</div>
+        {#if totalIncome > 0}
+          <div class="text-xs tabular-nums mt-1 {unbudgeted < 0 ? 'text-red-400' : 'text-gray-500'}">
+            {unbudgeted < 0
+              ? `${formatCurrency(Math.abs(unbudgeted))} over income`
+              : `${formatCurrency(unbudgeted)} of ${formatCurrency(totalIncome)} unbudgeted`}
+          </div>
+        {/if}
       </div>
       <div class="card text-center">
         <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Spent</div>
@@ -245,6 +303,26 @@
       <div class="card">
         <h3 class="text-sm font-semibold text-gray-300 mb-4">Spending Breakdown</h3>
         <SpendingChart data={chartData} />
+        {#if topOverages.length > 0}
+          <div class="mt-5 pt-4 border-t border-gray-700">
+            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Top Overages</h4>
+            <div class="space-y-2">
+              {#each topOverages as item}
+                <div class="flex items-center justify-between text-xs">
+                  <a
+                    href="/transactions?categoryId={item.categoryId}{item.subcategoryId
+                      ? '&subcategoryId=' + item.subcategoryId
+                      : ''}&month={month}"
+                    class="text-gray-400 hover:text-indigo-300 transition-colors truncate mr-2"
+                  >
+                    {item.label}
+                  </a>
+                  <span class="text-red-400 tabular-nums flex-shrink-0">+{formatCurrency(item.overage)}</span>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
       </div>
     </div>
   {/if}
