@@ -140,6 +140,10 @@
   let budgetCategories: BudgetCategory[] = []
   budgetStore.categories.subscribe(c => (budgetCategories = c))
 
+  $: sortedPaychecks = [...$paychecksStore].sort((a, b) => a.name.localeCompare(b.name))
+  $: sortedBills = [...$billsStore].sort((a, b) => a.name.localeCompare(b.name))
+  $: sortedBudgetCategories = [...budgetCategories].sort((a, b) => a.name.localeCompare(b.name))
+
   function getCategoryLabel(categoryId?: string, subcategoryId?: string): string {
     if (!categoryId) return ""
     const cat = budgetCategories.find(c => c.id === categoryId)
@@ -604,7 +608,7 @@
                       class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
                     >
                       <option value="">— None —</option>
-                      {#each $paychecksStore as paycheck}
+                      {#each sortedPaychecks as paycheck}
                         <option value={paycheck.id}>{paycheck.name}</option>
                       {/each}
                     </select>
@@ -619,7 +623,7 @@
                       class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
                     >
                       <option value="">— None —</option>
-                      {#each $billsStore as bill}
+                      {#each sortedBills as bill}
                         <option value={bill.id}>{bill.name}</option>
                       {/each}
                     </select>
@@ -637,7 +641,7 @@
                       class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
                     >
                       <option value="">— Unassigned —</option>
-                      {#each budgetCategories as cat}
+                      {#each sortedBudgetCategories as cat}
                         <option value={cat.id}>{cat.name}</option>
                       {/each}
                     </select>
@@ -652,7 +656,7 @@
                         class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
                       >
                         <option value="">— No subcategory —</option>
-                        {#each expandedCat.subcategories as sub}
+                        {#each [...expandedCat.subcategories].sort((a, b) => a.name.localeCompare(b.name)) as sub}
                           <option value={sub.id}>{sub.name}</option>
                         {/each}
                       </select>
