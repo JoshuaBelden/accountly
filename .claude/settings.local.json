@@ -12,7 +12,8 @@
       "Bash(node -e \"const v = require\\(''./node_modules/vite/package.json''\\).version; const r = require\\(''./node_modules/rollup/package.json''\\).version; const sk = require\\(''./node_modules/@sveltejs/kit/package.json''\\).version; console.log\\(''vite:'', v, ''rollup:'', r, ''sveltekit:'', sk\\)\")",
       "Bash(npm show @sveltejs/kit version)",
       "Read(//Users/joshuabelden/Downloads/**)",
-      "Bash(python3 -c \":*)"
+      "Bash(python3 -c \":*)",
+      "Bash(python3 -:*)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components"

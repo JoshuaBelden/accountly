@@ -8,14 +8,12 @@
 	import BillCard from '$lib/components/bills/BillCard.svelte';
 	import BillForm from '$lib/components/bills/BillForm.svelte';
 	import Modal from '$lib/components/shared/Modal.svelte';
-	import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import type { Bill, BudgetCategory } from '$lib/types';
 
 	let modalOpen = false;
 	let editBill: Bill | null = null;
-	let deleteTarget: string | null = null;
 	let categories: BudgetCategory[] = [];
 	budgetStore.categories.subscribe((c) => (categories = c));
 
@@ -35,14 +33,7 @@
 	}
 
 	function handleDelete(e: CustomEvent<Bill>) {
-		deleteTarget = e.detail.id;
-	}
-
-	function confirmDelete() {
-		if (deleteTarget) {
-			billsStore.remove(deleteTarget);
-			deleteTarget = null;
-		}
+		billsStore.remove(e.detail.id);
 	}
 
 	function getAccountName(id?: string) {
@@ -156,13 +147,3 @@
 <Modal open={modalOpen} title={editBill ? 'Edit Bill' : 'Add Bill'} on:close={closeModal}>
 	<BillForm {editBill} on:save={closeModal} on:cancel={closeModal} />
 </Modal>
-
-<ConfirmDialog
-	open={deleteTarget !== null}
-	title="Delete Bill"
-	message="Are you sure you want to delete this bill? Any planner assignments will also be removed."
-	confirmLabel="Delete"
-	danger
-	on:confirm={confirmDelete}
-	on:cancel={() => (deleteTarget = null)}
-/>

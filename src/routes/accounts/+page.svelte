@@ -14,15 +14,13 @@
 	import InvestmentCard from '$lib/components/accounts/InvestmentCard.svelte';
 	import AccountForm from '$lib/components/accounts/AccountForm.svelte';
 	import Modal from '$lib/components/shared/Modal.svelte';
-	import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
+	import HoldToDelete from '$lib/components/shared/HoldToDelete.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import type { Account, LoanAccount, AssetAccount, InvestmentAccount, CheckingAccount, SavingsAccount, Paycheck } from '$lib/types';
 
 	let modalOpen = false;
 	let editAccount: Account | null = null;
-	let deleteTarget: string | null = null;
-	let paycheckDeleteTarget: string | null = null;
 
 	function openAdd() {
 		editAccount = null;
@@ -40,25 +38,7 @@
 	}
 
 	function handleDelete(e: CustomEvent<Account>) {
-		deleteTarget = e.detail.id;
-	}
-
-	function confirmDelete() {
-		if (deleteTarget) {
-			accountsStore.remove(deleteTarget);
-			deleteTarget = null;
-		}
-	}
-
-	function handlePaycheckDelete(id: string) {
-		paycheckDeleteTarget = id;
-	}
-
-	function confirmPaycheckDelete() {
-		if (paycheckDeleteTarget) {
-			paychecksStore.remove(paycheckDeleteTarget);
-			paycheckDeleteTarget = null;
-		}
+		accountsStore.remove(e.detail.id);
 	}
 
 	function getAccountName(id: string) {
@@ -213,11 +193,7 @@
 							<div class="text-right">
 								<div class="font-semibold text-emerald-400 tabular-nums">{formatCurrency(pc.expectedAmount)}</div>
 							</div>
-							<button class="btn-ghost p-2 hover:text-red-400" on:click={() => handlePaycheckDelete(pc.id)} aria-label="Delete paycheck">
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-								</svg>
-							</button>
+							<HoldToDelete label="Delete paycheck" on:confirm={() => paychecksStore.remove(pc.id)} />
 						</div>
 					</div>
 				{/each}
@@ -229,23 +205,3 @@
 <Modal open={modalOpen} title={editAccount ? 'Edit Account' : 'Add Account'} on:close={closeModal}>
 	<AccountForm {editAccount} on:save={closeModal} on:cancel={closeModal} />
 </Modal>
-
-<ConfirmDialog
-	open={deleteTarget !== null}
-	title="Delete Account"
-	message="Are you sure you want to delete this account? This cannot be undone."
-	confirmLabel="Delete"
-	danger
-	on:confirm={confirmDelete}
-	on:cancel={() => (deleteTarget = null)}
-/>
-
-<ConfirmDialog
-	open={paycheckDeleteTarget !== null}
-	title="Delete Paycheck"
-	message="Are you sure you want to delete this paycheck?"
-	confirmLabel="Delete"
-	danger
-	on:confirm={confirmPaycheckDelete}
-	on:cancel={() => (paycheckDeleteTarget = null)}
-/>

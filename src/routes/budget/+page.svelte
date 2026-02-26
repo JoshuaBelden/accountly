@@ -6,7 +6,6 @@
 	import BudgetForm from '$lib/components/budget/BudgetForm.svelte';
 	import SpendingChart from '$lib/components/budget/SpendingChart.svelte';
 	import Modal from '$lib/components/shared/Modal.svelte';
-	import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { currentMonth, addMonths, formatMonth } from '$lib/utils/date';
@@ -15,7 +14,6 @@
 	let month = currentMonth();
 	let modalOpen = false;
 	let editCategory: BudgetCategory | null = null;
-	let deleteTarget: string | null = null;
 
 	let categories: BudgetCategory[] = [];
 	budgetStore.categories.subscribe((c: BudgetCategory[]) => (categories = c));
@@ -70,14 +68,7 @@
 	}
 
 	function handleDelete(e: CustomEvent<BudgetCategory>) {
-		deleteTarget = e.detail.id;
-	}
-
-	function confirmDelete() {
-		if (deleteTarget) {
-			budgetStore.removeCategory(deleteTarget);
-			deleteTarget = null;
-		}
+		budgetStore.removeCategory(e.detail.id);
 	}
 
 	let reapplyResult: string | null = null;
@@ -199,13 +190,3 @@
 <Modal open={modalOpen} title={editCategory ? 'Edit Category' : 'Add Budget Category'} on:close={closeModal}>
 	<BudgetForm {editCategory} on:save={closeModal} on:cancel={closeModal} />
 </Modal>
-
-<ConfirmDialog
-	open={deleteTarget !== null}
-	title="Delete Category"
-	message="Delete this budget category? Transactions linked to it will not be deleted."
-	confirmLabel="Delete"
-	danger
-	on:confirm={confirmDelete}
-	on:cancel={() => (deleteTarget = null)}
-/>
