@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { get } from 'svelte/store';
 	import { billsStore } from '$lib/stores/bills.store';
 	import { accountsStore } from '$lib/stores/accounts.store';
 	import { budgetStore } from '$lib/stores/budget.store';
+	import { transactionsStore } from '$lib/stores/transactions.store';
+	import { plannerStore } from '$lib/stores/planner.store';
 	import BillCard from '$lib/components/bills/BillCard.svelte';
 	import BillForm from '$lib/components/bills/BillForm.svelte';
 	import Modal from '$lib/components/shared/Modal.svelte';
@@ -52,6 +55,41 @@
 		return categories.find((c) => c.id === id)?.name ?? '';
 	}
 
+	let reapplyResult: string | null = null;
+
+	function reapplyHints() {
+		const txs = get(transactionsStore);
+		const bills = get(billsStore);
+		let updated = 0;
+		for (const tx of txs) {
+			if (tx.billId || !tx.description) continue;
+			for (const bill of bills) {
+				if (!bill.hints) continue;
+				try {
+					if (new RegExp(bill.hints, 'i').test(tx.description)) {
+						plannerStore.clearTransactionLink(tx.id);
+						const month = tx.date.substring(0, 7);
+						const assignments = plannerStore.getForMonth(month);
+						const assignment = assignments.find((a) => a.billId === bill.id);
+						if (assignment) plannerStore.linkTransaction(assignment.id, tx.id);
+						transactionsStore.update(tx.id, {
+							billId: bill.id,
+							type: 'bill_payment',
+							plannerMonth: month
+						});
+						updated++;
+						break;
+					}
+				} catch { /* invalid regex — skip */ }
+			}
+		}
+		reapplyResult =
+			updated === 0
+				? 'No unassigned transactions matched.'
+				: `Updated ${updated} transaction${updated === 1 ? '' : 's'}.`;
+		setTimeout(() => (reapplyResult = null), 4000);
+	}
+
 	$: monthlyTotal = $billsStore
 		.filter((b) => b.frequency === 'monthly')
 		.reduce((s, b) => s + b.amount, 0);
@@ -75,12 +113,22 @@
 				<p class="text-sm text-gray-400 mt-0.5">Monthly total: {formatCurrency(monthlyTotal)}</p>
 			{/if}
 		</div>
-		<button class="btn-primary" on:click={openAdd}>
-			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-			</svg>
-			Add Bill
-		</button>
+		<div class="flex items-center gap-3">
+			{#if reapplyResult}
+				<span class="text-sm text-emerald-400">{reapplyResult}</span>
+			{/if}
+			{#if $billsStore.some((b) => b.hints)}
+				<button class="btn-secondary" on:click={reapplyHints} title="Apply bill hints to unassigned transactions">
+					Update Transactions
+				</button>
+			{/if}
+			<button class="btn-primary" on:click={openAdd}>
+				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+				</svg>
+				Add Bill
+			</button>
+		</div>
 	</div>
 
 	{#if $billsStore.length === 0}
