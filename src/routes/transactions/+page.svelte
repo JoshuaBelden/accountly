@@ -362,7 +362,7 @@
 						{@const isSelected = selectedIds.has(tx.id)}
 						{@const isExpanded = expandedId === tx.id}
 						{@const expandedCat = budgetCategories.find((c) => c.id === tx.categoryId)}
-						<div class="transition-colors {isSelected ? 'bg-indigo-950/20' : ''}">
+						<div class="transition-colors {isSelected ? 'bg-indigo-950/20' : ''} {isExpanded ? 'ring-1 ring-inset ring-indigo-500/40' : ''}">
 							<!-- Summary row -->
 							<div
 								class="flex items-center gap-4 px-4 py-3 cursor-pointer group
@@ -452,7 +452,7 @@
 
 							<!-- Expanded detail panel -->
 							{#if isExpanded}
-								<div class="px-4 pb-4 pt-2 bg-gray-800/40 border-t border-gray-700/30 space-y-4">
+								<div class="px-4 pb-4 pt-2 bg-gray-700/25 border-t border-indigo-500/30 space-y-4">
 									<!-- Details grid -->
 									<div class="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-2 text-sm">
 										<div class="flex gap-2">
