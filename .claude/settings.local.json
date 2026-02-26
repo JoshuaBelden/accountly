@@ -14,7 +14,11 @@
       "Read(//Users/joshuabelden/Downloads/**)",
       "Bash(python3 -c \":*)",
       "Bash(python3 -:*)",
-      "Bash(git commit -m \"Add CLAUDE.md and apply codebase-wide style updates\")"
+      "Bash(git commit -m \"Add CLAUDE.md and apply codebase-wide style updates\")",
+      "Bash(npx prettier --write src/routes/planner/+page.svelte)",
+      "Bash(./node_modules/.bin/prettier --write src/routes/planner/+page.svelte)",
+      "Bash(git add src/routes/planner/+page.svelte)",
+      "Bash(git commit:*)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components"

@@ -7,8 +7,9 @@
   import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
-  import type { BudgetCategory } from "$lib/types"
+  import type { BudgetCategory, MonthlyBudgetOverride } from "$lib/types"
   import { addMonths, currentMonth, formatMonth, getPayDaysInMonth } from "$lib/utils/date"
+  import { formatCurrency } from "$lib/utils/currency"
 
   let month = currentMonth()
 
@@ -56,7 +57,9 @@
 
   // Budget categories for spending chart
   let categories: BudgetCategory[] = []
+  let overrides: MonthlyBudgetOverride[] = []
   budgetStore.categories.subscribe((c: BudgetCategory[]) => (categories = c))
+  budgetStore.overrides.subscribe((o: MonthlyBudgetOverride[]) => (overrides = o))
 
   $: chartTransactions = $transactionsStore.filter(t => t.plannerMonth === month || t.date.startsWith(month))
 
@@ -84,6 +87,22 @@
   $: totalBillsCleared = monthAssignments.filter(a =>
     monthTransactions.find(t => t.id === a.transactionId && t.clearedStatus === "cleared"),
   ).length
+
+  // Monthly budget summary
+  $: totalBudgeted = categories.reduce((sum, cat) => {
+    const override = overrides.find(o => o.categoryId === cat.id && !o.subcategoryId && o.month === month)
+    return sum + (override?.budgetAmount ?? cat.monthlyBudget)
+  }, 0)
+  $: totalSpent = chartData.reduce((sum, d) => sum + d.amount, 0)
+  $: remainingBudget = totalBudgeted - totalSpent
+
+  // Cash flow: expected income from paychecks vs planned bill expenses
+  $: expectedIncome = payPeriods.reduce((sum, pp) => sum + pp.paycheck.expectedAmount, 0)
+  $: expectedExpenses = monthAssignments.reduce((sum, assignment) => {
+    const bill = $billsStore.find(b => b.id === assignment.billId)
+    return sum + (assignment.overrideAmount ?? bill?.amount ?? 0)
+  }, 0)
+  $: netCashFlow = expectedIncome - expectedExpenses
 </script>
 
 <div class="max-w-7xl mx-auto space-y-6">
@@ -157,10 +176,60 @@
       </div>
     {/if}
 
-    <!-- Spending breakdown -->
-    <div class="card max-w-xs">
-      <h3 class="text-sm font-semibold text-gray-300 mb-4">Spending Breakdown</h3>
-      <SpendingChart data={chartData} />
+    <!-- Spending breakdown + Monthly Summary -->
+    <div class="flex gap-4 items-start flex-wrap">
+      <div class="card max-w-xs">
+        <h3 class="text-sm font-semibold text-gray-300 mb-4">Spending Breakdown</h3>
+        <SpendingChart data={chartData} />
+      </div>
+
+      <div class="card flex-1 min-w-64">
+        <h3 class="text-sm font-semibold text-gray-300 mb-4">Monthly Summary</h3>
+
+        <div class="space-y-4">
+          <!-- Budget vs Actual -->
+          <div>
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Budget vs Actual</p>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-400">Budgeted</span>
+                <span class="tabular-nums text-gray-200">{formatCurrency(totalBudgeted)}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-400">Spent</span>
+                <span class="tabular-nums text-gray-200">{formatCurrency(totalSpent)}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm font-medium border-t border-gray-700 pt-2">
+                <span class="text-gray-300">Remaining</span>
+                <span class="tabular-nums {remainingBudget >= 0 ? 'text-emerald-400' : 'text-red-400'}">
+                  {formatCurrency(remainingBudget)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cash Flow -->
+          <div>
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Expected Cash Flow</p>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-400">Income</span>
+                <span class="tabular-nums text-emerald-400">{formatCurrency(expectedIncome)}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-400">Bills</span>
+                <span class="tabular-nums text-red-400">{formatCurrency(expectedExpenses)}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm font-medium border-t border-gray-700 pt-2">
+                <span class="text-gray-300">Net</span>
+                <span class="tabular-nums {netCashFlow >= 0 ? 'text-emerald-400' : 'text-red-400'}">
+                  {formatCurrency(netCashFlow)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   {/if}
 </div>
