@@ -33,7 +33,7 @@
 	// Loan/Asset specific
 	let originalBalance = (editAccount as LoanAccount)?.originalBalance ?? 0;
 	let remainingBalance = (editAccount as LoanAccount)?.remainingBalance ?? 0;
-	let interestRate = (editAccount as LoanAccount)?.interestRate ?? 0;
+	let interestRate = ((editAccount as LoanAccount)?.interestRate ?? 0) * 100;
 	let minimumPayment = (editAccount as LoanAccount)?.minimumPayment ?? 0;
 	let paymentDueDay = (editAccount as LoanAccount)?.paymentDueDay ?? 1;
 	let paymentFrequency: LoanFrequency = (editAccount as LoanAccount)?.paymentFrequency ?? 'monthly';
