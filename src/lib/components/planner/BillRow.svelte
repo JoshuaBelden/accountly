@@ -65,11 +65,10 @@
       {#if bill.dueDayOfMonth}
         <span class="text-xs text-gray-600 ml-1">due {bill.dueDayOfMonth}</span>
       {/if}
+      {#if bill.autoPay}
+        <span class="text-xs text-gray-600 ml-1">autopay</span>
+      {/if}
     </div>
-
-    {#if bill.autoPay}
-      <span class="badge-gray">Autopay</span>
-    {/if}
 
     <span class="text-sm tabular-nums text-right w-24 {isPaid ? 'text-gray-500' : 'text-gray-200'}">
       {formatCurrency(displayAmount)}

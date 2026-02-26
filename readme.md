@@ -4,11 +4,8 @@ A personal finance manager for the average person.
 
 ## TODO
 
--planner: move autopay
-- Accounts: Move paychecks under Savings
-
+- Transactions: Budget Categories not sorted
 - Settings: Export data should prompt for download location
-- Add website and notes to accounts and bills
 - Add Credit Cards
 - Split Transactions
-- Planner: Improve budgeting, show expected vs actuals with remaining
+- Planner: Improve budgeting, show expected vs actuals with remaining, show top overages

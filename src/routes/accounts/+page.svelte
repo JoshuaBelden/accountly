@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from "$app/stores"
   import AccountCard from "$lib/components/accounts/AccountCard.svelte"
   import AccountForm from "$lib/components/accounts/AccountForm.svelte"
   import AssetCard from "$lib/components/accounts/AssetCard.svelte"
@@ -22,9 +23,8 @@
   import type { Account, AssetAccount, InvestmentAccount, LoanAccount, Paycheck } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
   import { findMatchingPayDate } from "$lib/utils/date"
-  import { get } from "svelte/store"
-  import { page } from "$app/stores"
   import { onMount } from "svelte"
+  import { get } from "svelte/store"
 
   let filterQuery = ""
 
@@ -42,7 +42,9 @@
   $: visibleInvestments = filterQuery
     ? $investmentAccounts.filter(a => a.name.toLowerCase().includes(term))
     : $investmentAccounts
-  $: visiblePaychecks = filterQuery ? $paychecksStore.filter(pc => pc.name.toLowerCase().includes(term)) : $paychecksStore
+  $: visiblePaychecks = filterQuery
+    ? $paychecksStore.filter(pc => pc.name.toLowerCase().includes(term))
+    : $paychecksStore
 
   let modalOpen = false
   let editAccount: Account | null = null
@@ -211,55 +213,98 @@
   </div>
 
   <!-- Checking -->
-  {#if !filterQuery || visibleChecking.length > 0}
+  {#if !filterQuery || visibleChecking.length > 0 || visibleSavings.length > 0}
     <section>
-      <h2 class="section-title flex items-center gap-2">
-        Checking
-        {#if visibleChecking.length > 0}
-          <span class="text-sm font-normal text-gray-400">
-            Total: {formatCurrency(visibleChecking.reduce((s, a) => s + a.balance, 0))}
-          </span>
-        {/if}
-      </h2>
-      {#if $checkingAccounts.length === 0}
-        <EmptyState
-          title="No checking accounts"
-          description="Add a checking account to track your daily spending."
-          actionLabel="Add Checking"
-          on:action={openAdd}
-        />
-      {:else}
-        <div class="space-y-3">
+      <h2 class="section-title flex items-center gap-2">Bank</h2>
+      <div class="space-y-3">
+        {#if $checkingAccounts.length === 0}
+          <EmptyState
+            title="No checking accounts"
+            description="Add a checking account to track your daily spending."
+            actionLabel="Add Checking"
+            on:action={openAdd}
+          />
+        {:else}
           {#each visibleChecking as account (account.id)}
             <AccountCard {account} on:edit={openEdit} on:delete={handleDelete} />
           {/each}
-        </div>
-      {/if}
+        {/if}
+
+        <!-- Savings -->
+        {#if !filterQuery || visibleSavings.length > 0}
+          {#if $savingsAccounts.length === 0}
+            <EmptyState
+              title="No savings accounts"
+              description="Add a savings account to track your savings goals."
+              actionLabel="Add Savings"
+              on:action={openAdd}
+            />
+          {:else}
+            {#each visibleSavings as account (account.id)}
+              <AccountCard {account} on:edit={openEdit} on:delete={handleDelete} />
+            {/each}
+          {/if}
+        {/if}
+      </div>
     </section>
   {/if}
 
-  <!-- Savings -->
-  {#if !filterQuery || visibleSavings.length > 0}
+  <!-- Income -->
+  {#if !filterQuery || visiblePaychecks.length > 0}
     <section>
-      <h2 class="section-title flex items-center gap-2">
-        Savings
-        {#if visibleSavings.length > 0}
-          <span class="text-sm font-normal text-gray-400">
-            Total: {formatCurrency(visibleSavings.reduce((s, a) => s + a.balance, 0))}
-          </span>
-        {/if}
-      </h2>
-      {#if $savingsAccounts.length === 0}
+      <h2 class="section-title">Income</h2>
+      {#if $paychecksStore.length === 0}
         <EmptyState
-          title="No savings accounts"
-          description="Add a savings account to track your savings goals."
-          actionLabel="Add Savings"
+          title="No income configured"
+          description="Set up your income sources so the Monthly Planner can organize your bills."
+          actionLabel="Add Income"
           on:action={openAdd}
         />
       {:else}
         <div class="space-y-3">
-          {#each visibleSavings as account (account.id)}
-            <AccountCard {account} on:edit={openEdit} on:delete={handleDelete} />
+          {#each visiblePaychecks as pc (pc.id)}
+            <div class="card flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-indigo-900 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <div class="font-medium text-gray-100">{pc.name}</div>
+                  <div class="text-xs text-gray-500">
+                    {incomeTypeLabels[pc.incomeType ?? "paycheck"]} · {freqLabels[pc.frequency]} → {getAccountName(
+                      pc.accountId,
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="text-right">
+                  <div class="font-semibold text-emerald-400 tabular-nums">{formatCurrency(pc.expectedAmount)}</div>
+                </div>
+                <button
+                  class="p-1.5 text-gray-500 hover:text-gray-200 transition-colors"
+                  title="Edit income"
+                  on:click={() => openEditPaycheck(pc)}
+                >
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                </button>
+                <HoldToDelete label="Delete income" on:confirm={() => paychecksStore.remove(pc.id)} />
+              </div>
+            </div>
           {/each}
         </div>
       {/if}
@@ -347,68 +392,6 @@
           {/each}
         </div>
       {/if}
-    </section>
-  {/if}
-
-  <!-- Income -->
-  {#if !filterQuery || visiblePaychecks.length > 0}
-    <section>
-      <h2 class="section-title">Income</h2>
-      {#if $paychecksStore.length === 0}
-        <EmptyState
-          title="No income configured"
-          description="Set up your income sources so the Monthly Planner can organize your bills."
-          actionLabel="Add Income"
-          on:action={openAdd}
-        />
-      {:else}
-        <div class="space-y-3">
-          {#each visiblePaychecks as pc (pc.id)}
-          <div class="card flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-indigo-900 flex items-center justify-center">
-                <svg class="w-5 h-5 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <div class="font-medium text-gray-100">{pc.name}</div>
-                <div class="text-xs text-gray-500">
-                  {incomeTypeLabels[pc.incomeType ?? "paycheck"]} · {freqLabels[pc.frequency]} → {getAccountName(
-                    pc.accountId,
-                  )}
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-4">
-              <div class="text-right">
-                <div class="font-semibold text-emerald-400 tabular-nums">{formatCurrency(pc.expectedAmount)}</div>
-              </div>
-              <button
-                class="p-1.5 text-gray-500 hover:text-gray-200 transition-colors"
-                title="Edit income"
-                on:click={() => openEditPaycheck(pc)}
-              >
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-              </button>
-              <HoldToDelete label="Delete income" on:confirm={() => paychecksStore.remove(pc.id)} />
-            </div>
-          </div>
-        {/each}
-      </div>
-    {/if}
     </section>
   {/if}
 </div>
