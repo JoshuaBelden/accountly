@@ -16,7 +16,7 @@
 
 	const dispatch = createEventDispatcher();
 
-	type RowWithMeta = ParsedCsvRow & { isDuplicate: boolean; matchedBill?: Bill };
+	type RowWithMeta = ParsedCsvRow & { isDuplicate: boolean; matchedBill?: Bill; matchedCategoryLabel?: string };
 
 	let step: 'upload' | 'preview' = 'upload';
 	let selectedAccountId = '';
@@ -68,11 +68,22 @@
 				const existingKeys = new Set(
 					existing.map((t) => `${t.date}|${t.description}|${t.amount}`)
 				);
-				parsedRows = rows.map((r) => ({
-					...r,
-					isDuplicate: existingKeys.has(`${r.date}|${r.description}|${r.amount}`),
-					matchedBill: matchBill(r.description)
-				}));
+				parsedRows = rows.map((r) => {
+					const matchedBill = matchBill(r.description);
+					let matchedCategoryLabel: string | undefined;
+					if (matchedBill?.categoryId) {
+						matchedCategoryLabel = getCategoryLabel(matchedBill.categoryId, matchedBill.subcategoryId);
+					} else {
+						const catMatch = matchCategory(r.description);
+						if (catMatch) matchedCategoryLabel = getCategoryLabel(catMatch.categoryId, catMatch.subcategoryId);
+					}
+					return {
+						...r,
+						isDuplicate: existingKeys.has(`${r.date}|${r.description}|${r.amount}`),
+						matchedBill,
+						matchedCategoryLabel
+					};
+				});
 				selected = parsedRows.map((r) => !r.isDuplicate);
 				if (accounts.length === 1) selectedAccountId = accounts[0].id;
 				step = 'preview';
@@ -139,6 +150,17 @@
 			} catch { /* invalid regex — skip */ }
 		}
 		return undefined;
+	}
+
+	function getCategoryLabel(categoryId: string, subcategoryId?: string): string {
+		const categories = get(budgetStore.categories);
+		const cat = categories.find((c) => c.id === categoryId);
+		if (!cat) return '';
+		if (subcategoryId) {
+			const sub = cat.subcategories.find((s) => s.id === subcategoryId);
+			if (sub) return `${cat.name} › ${sub.name}`;
+		}
+		return cat.name;
 	}
 
 	function importSelected() {
@@ -319,6 +341,9 @@
 										<span class="block truncate" title={row.description}>{row.description}</span>
 										{#if row.matchedBill}
 											<span class="text-xs text-indigo-400">Bill: {row.matchedBill.name}</span>
+										{/if}
+										{#if row.matchedCategoryLabel}
+											<span class="text-xs text-emerald-400">Category: {row.matchedCategoryLabel}</span>
 										{/if}
 									</td>
 									<td class="px-3 py-2">
