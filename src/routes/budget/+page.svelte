@@ -135,7 +135,7 @@
 				<span class="text-sm text-emerald-400">{reapplyResult}</span>
 			{/if}
 			<button class="btn-secondary" on:click={reapplyHints} title="Apply hints to all uncategorized transactions">
-				Re-apply Hints
+				Update Transactions
 			</button>
 			<button class="btn-primary" on:click={openAdd}>
 				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

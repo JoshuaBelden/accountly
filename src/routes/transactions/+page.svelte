@@ -107,6 +107,11 @@
 		transfer: 'Transfer',
 		bill_payment: 'Bill'
 	};
+
+	let expandedId: string | null = null;
+	function toggleExpand(id: string) {
+		expandedId = expandedId === id ? null : id;
+	}
 </script>
 
 <div class="max-w-4xl mx-auto space-y-6">
@@ -190,75 +195,166 @@
 					{#each pagedTransactions as tx (tx.id)}
 						{@const catLabel = getCategoryLabel(tx.categoryId, tx.subcategoryId)}
 						{@const isSelected = selectedIds.has(tx.id)}
-						<div
-							class="flex items-center gap-4 px-4 py-3 transition-colors group
-								{isSelected ? 'bg-indigo-950/20' : 'hover:bg-gray-800/30'}"
-						>
-							<!-- Checkbox -->
-							<input
-								type="checkbox"
-								checked={isSelected}
-								on:change={() => toggleRow(tx.id)}
-								class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-indigo-500 cursor-pointer flex-shrink-0"
-							/>
-
-							<!-- Date -->
-							<div class="text-sm text-gray-400 tabular-nums w-20 flex-shrink-0">
-								{formatDateShort(tx.date)}
-							</div>
-
-							<!-- Description + category + notes -->
-							<div class="flex-1 min-w-0">
-								<div class="text-sm text-gray-100 truncate">{tx.description}</div>
-								{#if catLabel}
-									<div class="text-xs text-gray-500 truncate">{catLabel}</div>
-								{/if}
-								{#if tx.notes}
-									<div class="text-xs text-gray-600 italic truncate">{tx.notes}</div>
-								{/if}
-							</div>
-
-							<!-- Type badge -->
-							<span
-								class="text-xs px-2 py-0.5 rounded border flex-shrink-0
-									{typeColors[tx.type] ?? 'text-gray-400 bg-gray-800 border-gray-700'}"
-							>
-								{typeLabels[tx.type] ?? tx.type}
-							</span>
-
-							<!-- Imported badge -->
-							{#if tx.imported}
-								<span
-									class="text-xs px-2 py-0.5 rounded border flex-shrink-0 text-violet-400 bg-violet-950/30 border-violet-800/50"
-									title="Imported from CSV"
-								>
-									Imported
-								</span>
-							{/if}
-
-							<!-- Amount -->
+						{@const isExpanded = expandedId === tx.id}
+						{@const expandedCat = budgetCategories.find((c) => c.id === tx.categoryId)}
+						<div class="transition-colors {isSelected ? 'bg-indigo-950/20' : ''}">
+							<!-- Summary row -->
 							<div
-								class="text-sm font-medium tabular-nums flex-shrink-0 w-24 text-right
-									{tx.type === 'income' ? 'text-emerald-400' : 'text-red-400'}"
+								class="flex items-center gap-4 px-4 py-3 cursor-pointer group
+									{isExpanded ? 'bg-gray-800/50' : 'hover:bg-gray-800/30'}"
+								on:click={() => toggleExpand(tx.id)}
+								role="button"
+								tabindex="0"
+								on:keydown={(e) => e.key === 'Enter' && toggleExpand(tx.id)}
 							>
-								{tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+								<!-- Checkbox -->
+								<input
+									type="checkbox"
+									checked={isSelected}
+									on:click|stopPropagation
+									on:change={() => toggleRow(tx.id)}
+									class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-indigo-500 cursor-pointer flex-shrink-0"
+								/>
+
+								<!-- Date -->
+								<div class="text-sm text-gray-400 tabular-nums w-20 flex-shrink-0">
+									{formatDateShort(tx.date)}
+								</div>
+
+								<!-- Description + category + notes -->
+								<div class="flex-1 min-w-0">
+									<div class="text-sm text-gray-100 truncate">{tx.description}</div>
+									{#if catLabel}
+										<div class="text-xs text-gray-500 truncate">{catLabel}</div>
+									{/if}
+									{#if tx.notes && !isExpanded}
+										<div class="text-xs text-gray-600 italic truncate">{tx.notes}</div>
+									{/if}
+								</div>
+
+								<!-- Type badge -->
+								<span
+									class="text-xs px-2 py-0.5 rounded border flex-shrink-0
+										{typeColors[tx.type] ?? 'text-gray-400 bg-gray-800 border-gray-700'}"
+								>
+									{typeLabels[tx.type] ?? tx.type}
+								</span>
+
+								<!-- Imported badge -->
+								{#if tx.imported}
+									<span
+										class="text-xs px-2 py-0.5 rounded border flex-shrink-0 text-violet-400 bg-violet-950/30 border-violet-800/50"
+										title="Imported from CSV"
+									>
+										Imported
+									</span>
+								{/if}
+
+								<!-- Amount -->
+								<div
+									class="text-sm font-medium tabular-nums flex-shrink-0 w-24 text-right
+										{tx.type === 'income' ? 'text-emerald-400' : 'text-red-400'}"
+								>
+									{tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+								</div>
+
+								<!-- Expand indicator -->
+								<svg
+									class="w-3.5 h-3.5 flex-shrink-0 text-gray-600 transition-transform {isExpanded ? 'rotate-180' : ''}"
+									fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+								>
+									<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+								</svg>
+
+								<!-- Remove -->
+								<button
+									on:click|stopPropagation={() => transactionsStore.remove(tx.id)}
+									class="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-red-400 transition-all flex-shrink-0"
+									aria-label="Remove transaction"
+								>
+									<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+										/>
+									</svg>
+								</button>
 							</div>
 
-							<!-- Remove -->
-							<button
-								on:click={() => transactionsStore.remove(tx.id)}
-								class="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-red-400 transition-all flex-shrink-0"
-								aria-label="Remove transaction"
-							>
-								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-									/>
-								</svg>
-							</button>
+							<!-- Expanded detail panel -->
+							{#if isExpanded}
+								<div class="px-4 pb-4 pt-2 bg-gray-800/40 border-t border-gray-700/30 space-y-4">
+									<!-- Details grid -->
+									<div class="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-2 text-sm">
+										<div class="flex gap-2">
+											<span class="text-gray-500">Date</span>
+											<span class="text-gray-200">{tx.date}</span>
+										</div>
+										<div class="flex gap-2">
+											<span class="text-gray-500">Type</span>
+											<span class="text-gray-200">{typeLabels[tx.type] ?? tx.type}</span>
+										</div>
+										<div class="flex gap-2">
+											<span class="text-gray-500">Amount</span>
+											<span class="{tx.type === 'income' ? 'text-emerald-400' : 'text-red-400'} tabular-nums">
+												{tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+											</span>
+										</div>
+										{#if tx.plannerMonth}
+											<div class="flex gap-2">
+												<span class="text-gray-500">Month</span>
+												<span class="text-gray-200">{tx.plannerMonth}</span>
+											</div>
+										{/if}
+										<div class="col-span-2 flex gap-2">
+											<span class="text-gray-500 flex-shrink-0">Description</span>
+											<span class="text-gray-200">{tx.description}</span>
+										</div>
+										{#if tx.notes}
+											<div class="col-span-2 flex gap-2">
+												<span class="text-gray-500 flex-shrink-0">Notes</span>
+												<span class="text-gray-300 italic">{tx.notes}</span>
+											</div>
+										{/if}
+									</div>
+
+									<!-- Category assignment -->
+									<div class="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-700/40">
+										<span class="text-xs text-gray-500 uppercase tracking-wide">Budget Category</span>
+										<select
+											value={tx.categoryId ?? ''}
+											on:change={(e) => {
+												const catId = e.currentTarget.value || undefined;
+												transactionsStore.update(tx.id, { categoryId: catId, subcategoryId: undefined });
+											}}
+											class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+										>
+											<option value="">— Unassigned —</option>
+											{#each budgetCategories as cat}
+												<option value={cat.id}>{cat.name}</option>
+											{/each}
+										</select>
+
+										{#if expandedCat && expandedCat.subcategories.length > 0}
+											<select
+												value={tx.subcategoryId ?? ''}
+												on:change={(e) => {
+													const subId = e.currentTarget.value || undefined;
+													transactionsStore.update(tx.id, { subcategoryId: subId });
+												}}
+												class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+											>
+												<option value="">— No subcategory —</option>
+												{#each expandedCat.subcategories as sub}
+													<option value={sub.id}>{sub.name}</option>
+												{/each}
+											</select>
+										{/if}
+									</div>
+								</div>
+							{/if}
 						</div>
 					{/each}
 				</div>
