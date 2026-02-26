@@ -18,7 +18,8 @@
       "Bash(npx prettier --write src/routes/planner/+page.svelte)",
       "Bash(./node_modules/.bin/prettier --write src/routes/planner/+page.svelte)",
       "Bash(git add src/routes/planner/+page.svelte)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git add src/lib/components/accounts/AccountForm.svelte src/lib/components/planner/PaycheckColumn.svelte src/lib/types/paycheck.ts src/routes/accounts/+page.svelte src/routes/planner/+page.svelte)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components"

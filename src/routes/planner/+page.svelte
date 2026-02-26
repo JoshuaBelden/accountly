@@ -20,10 +20,17 @@
     month = addMonths(month, 1)
   }
 
-  // Compute all pay days in the current month, across all paychecks
-  $: payPeriods = $paychecksStore
-    .flatMap(pc => getPayDaysInMonth(pc, month).map(date => ({ paycheck: pc, date })))
-    .sort((a, b) => a.date.localeCompare(b.date))
+  // Compute all pay days in the current month — paycheck-type first, then other income
+  $: payPeriods = [
+    ...$paychecksStore
+      .filter(pc => (pc.incomeType ?? "paycheck") === "paycheck")
+      .flatMap(pc => getPayDaysInMonth(pc, month).map(date => ({ paycheck: pc, date })))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+    ...$paychecksStore
+      .filter(pc => pc.incomeType === "other")
+      .flatMap(pc => getPayDaysInMonth(pc, month).map(date => ({ paycheck: pc, date })))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+  ]
 
   // Bills that are monthly (or applicable this month) and not yet assigned
   $: monthAssignments = $plannerStore.filter(a => a.plannerMonth === month)
@@ -35,13 +42,14 @@
 
   // Auto-assign unassigned auto-pay bills to paychecks based on due date
   function autoAssignBillsForMonth() {
-    if (payPeriods.length === 0) return
+    const paycheckPeriods = payPeriods.filter(p => (p.paycheck.incomeType ?? "paycheck") === "paycheck")
+    if (paycheckPeriods.length === 0) return
     const toAssign = $billsStore.filter(b => b.autoPay && !assignedBillIds.has(b.id))
     for (const bill of toAssign) {
-      let bestPeriod = payPeriods[0]
+      let bestPeriod = paycheckPeriods[0]
       if (bill.dueDayOfMonth) {
         const dueDay = bill.dueDayOfMonth
-        const before = payPeriods.filter(p => parseInt(p.date.split("-")[2]) <= dueDay)
+        const before = paycheckPeriods.filter(p => parseInt(p.date.split("-")[2]) <= dueDay)
         if (before.length > 0) bestPeriod = before[before.length - 1]
       }
       plannerStore.assign({
@@ -138,8 +146,8 @@
 
   {#if $paychecksStore.length === 0}
     <EmptyState
-      title="No paychecks configured"
-      description="Set up your pay schedule in Accounts to use the Monthly Planner."
+      title="No income configured"
+      description="Set up your income sources in Accounts to use the Monthly Planner."
     />
   {:else if payPeriods.length === 0}
     <div class="text-center py-16 text-gray-500">

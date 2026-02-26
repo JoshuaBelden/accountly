@@ -16,25 +16,35 @@
     savingsAccounts,
   } from "$lib/stores/accounts.store"
   import { paychecksStore } from "$lib/stores/paychecks.store"
-  import type { Account, AssetAccount, InvestmentAccount, LoanAccount } from "$lib/types"
+  import type { Account, AssetAccount, InvestmentAccount, LoanAccount, Paycheck } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
 
   let modalOpen = false
   let editAccount: Account | null = null
+  let editPaycheck: Paycheck | null = null
 
   function openAdd() {
     editAccount = null
+    editPaycheck = null
     modalOpen = true
   }
 
   function openEdit(e: CustomEvent<Account>) {
     editAccount = e.detail
+    editPaycheck = null
+    modalOpen = true
+  }
+
+  function openEditPaycheck(paycheck: Paycheck) {
+    editAccount = null
+    editPaycheck = paycheck
     modalOpen = true
   }
 
   function closeModal() {
     modalOpen = false
     editAccount = null
+    editPaycheck = null
   }
 
   function handleDelete(e: CustomEvent<Account>) {
@@ -50,6 +60,11 @@
     biweekly: "Biweekly",
     semimonthly: "Semimonthly",
     monthly: "Monthly",
+  }
+
+  const incomeTypeLabels: Record<string, string> = {
+    paycheck: "Paycheck",
+    other: "Other",
   }
 </script>
 
@@ -194,14 +209,14 @@
     {/if}
   </section>
 
-  <!-- Paychecks -->
+  <!-- Income -->
   <section>
-    <h2 class="section-title">Paychecks</h2>
+    <h2 class="section-title">Income</h2>
     {#if $paychecksStore.length === 0}
       <EmptyState
-        title="No paychecks configured"
-        description="Set up your pay schedule so the Monthly Planner can organize your bills."
-        actionLabel="Add Paycheck"
+        title="No income configured"
+        description="Set up your income sources so the Monthly Planner can organize your bills."
+        actionLabel="Add Income"
         on:action={openAdd}
       />
     {:else}
@@ -221,14 +236,32 @@
               </div>
               <div>
                 <div class="font-medium text-gray-100">{pc.name}</div>
-                <div class="text-xs text-gray-500">{freqLabels[pc.frequency]} → {getAccountName(pc.accountId)}</div>
+                <div class="text-xs text-gray-500">
+                  {incomeTypeLabels[pc.incomeType ?? "paycheck"]} · {freqLabels[pc.frequency]} → {getAccountName(
+                    pc.accountId,
+                  )}
+                </div>
               </div>
             </div>
             <div class="flex items-center gap-4">
               <div class="text-right">
                 <div class="font-semibold text-emerald-400 tabular-nums">{formatCurrency(pc.expectedAmount)}</div>
               </div>
-              <HoldToDelete label="Delete paycheck" on:confirm={() => paychecksStore.remove(pc.id)} />
+              <button
+                class="p-1.5 text-gray-500 hover:text-gray-200 transition-colors"
+                title="Edit income"
+                on:click={() => openEditPaycheck(pc)}
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+              <HoldToDelete label="Delete income" on:confirm={() => paychecksStore.remove(pc.id)} />
             </div>
           </div>
         {/each}
@@ -237,6 +270,10 @@
   </section>
 </div>
 
-<Modal open={modalOpen} title={editAccount ? "Edit Account" : "Add Account"} on:close={closeModal}>
-  <AccountForm {editAccount} on:save={closeModal} on:cancel={closeModal} />
+<Modal
+  open={modalOpen}
+  title={editPaycheck ? "Edit Income" : editAccount ? "Edit Account" : "Add"}
+  on:close={closeModal}
+>
+  <AccountForm {editAccount} {editPaycheck} on:save={closeModal} on:cancel={closeModal} />
 </Modal>

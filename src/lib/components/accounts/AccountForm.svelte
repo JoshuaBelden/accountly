@@ -7,6 +7,7 @@
     AssetAccount,
     AssetSubtype,
     CheckingAccount,
+    IncomeType,
     InvestmentAccount,
     LoanAccount,
     LoanFrequency,
@@ -18,11 +19,12 @@
   import { createEventDispatcher } from "svelte"
 
   export let editAccount: Account | null = null
+  export let editPaycheck: Paycheck | null = null
 
   const dispatch = createEventDispatcher()
 
   type FormMode = "account" | "paycheck"
-  let formMode: FormMode = "account"
+  let formMode: FormMode = editPaycheck ? "paycheck" : "account"
 
   // Account form fields
   let type: AccountType = (editAccount?.type as AccountType) ?? "checking"
@@ -47,15 +49,16 @@
   let currentBalance = (editAccount as InvestmentAccount)?.currentBalance ?? 0
 
   // Paycheck form fields
-  let paycheckName = ""
-  let paycheckAmount = 0
-  let paycheckFrequency: PayFrequency = "biweekly"
-  let paycheckAccountId = editAccount?.id ?? ""
-  let biweeklyAnchorDate = todayISO()
-  let semimonthlyFirst = 1
-  let semimonthlySecond = 15
-  let monthlyDay = 1
-  let weeklyAnchorDate = todayISO()
+  let paycheckName = editPaycheck?.name ?? ""
+  let paycheckAmount = editPaycheck?.expectedAmount ?? 0
+  let paycheckFrequency: PayFrequency = editPaycheck?.frequency ?? "biweekly"
+  let paycheckAccountId = editPaycheck?.accountId ?? editAccount?.id ?? ""
+  let biweeklyAnchorDate = editPaycheck?.biweeklyAnchorDate ?? todayISO()
+  let semimonthlyFirst = editPaycheck?.semimonthlyDays?.firstDay ?? 1
+  let semimonthlySecond = editPaycheck?.semimonthlyDays?.secondDay ?? 15
+  let monthlyDay = editPaycheck?.monthlyDay ?? 1
+  let weeklyAnchorDate = editPaycheck?.weeklyAnchorDate ?? todayISO()
+  let incomeType: IncomeType = editPaycheck?.incomeType ?? "paycheck"
 
   function now() {
     return new Date().toISOString()
@@ -128,22 +131,32 @@
   }
 
   function savePaycheck() {
-    const paycheck: Paycheck = {
-      id: uid(),
+    const fields = {
       name: paycheckName,
       expectedAmount: paycheckAmount,
       frequency: paycheckFrequency,
+      incomeType,
       accountId: paycheckAccountId,
       biweeklyAnchorDate: paycheckFrequency === "biweekly" ? biweeklyAnchorDate : undefined,
       semimonthlyDays:
         paycheckFrequency === "semimonthly" ? { firstDay: semimonthlyFirst, secondDay: semimonthlySecond } : undefined,
       monthlyDay: paycheckFrequency === "monthly" ? monthlyDay : undefined,
       weeklyAnchorDate: paycheckFrequency === "weekly" ? weeklyAnchorDate : undefined,
-      createdAt: now(),
-      updatedAt: now(),
     }
-    paychecksStore.add(paycheck)
-    dispatch("save", paycheck)
+
+    if (editPaycheck) {
+      paychecksStore.update(editPaycheck.id, { ...fields, updatedAt: now() })
+      dispatch("save", { ...editPaycheck, ...fields })
+    } else {
+      const paycheck: Paycheck = {
+        id: uid(),
+        ...fields,
+        createdAt: now(),
+        updatedAt: now(),
+      }
+      paychecksStore.add(paycheck)
+      dispatch("save", paycheck)
+    }
   }
 
   function submit() {
@@ -161,7 +174,7 @@
   <button
     type="button"
     class="{formMode === 'paycheck' ? 'btn-primary' : 'btn-secondary'} text-xs"
-    on:click={() => (formMode = "paycheck")}>Paycheck</button
+    on:click={() => (formMode = "paycheck")}>Income</button
   >
 </div>
 
@@ -252,17 +265,31 @@
       <textarea id="acct-notes" class="input" rows="2" bind:value={notes}></textarea>
     </div>
   {:else}
-    <!-- Paycheck Form -->
+    <!-- Income Form -->
     <div>
-      <label class="label" for="pc-name">Paycheck Name</label>
-      <input id="pc-name" class="input" type="text" bind:value={paycheckName} required placeholder="e.g. Main Job" />
+      <label class="label" for="pc-income-type">Income Type</label>
+      <select id="pc-income-type" class="input" bind:value={incomeType}>
+        <option value="paycheck">Paycheck</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div>
+      <label class="label" for="pc-name">Name</label>
+      <input
+        id="pc-name"
+        class="input"
+        type="text"
+        bind:value={paycheckName}
+        required
+        placeholder={incomeType === "other" ? "e.g. Rental Income" : "e.g. Main Job"}
+      />
     </div>
     <div>
       <label class="label" for="pc-amount">Expected Amount ($)</label>
       <input id="pc-amount" class="input" type="number" step="0.01" bind:value={paycheckAmount} required />
     </div>
     <div>
-      <label class="label" for="pc-freq">Pay Frequency</label>
+      <label class="label" for="pc-freq">Frequency</label>
       <select id="pc-freq" class="input" bind:value={paycheckFrequency}>
         <option value="weekly">Weekly</option>
         <option value="biweekly">Biweekly</option>
@@ -314,7 +341,7 @@
   <div class="flex justify-end gap-3 pt-2">
     <button type="button" class="btn-secondary" on:click={() => dispatch("cancel")}>Cancel</button>
     <button type="submit" class="btn-primary">
-      {editAccount ? "Update" : "Add"}
+      {editPaycheck || editAccount ? "Update" : "Add"}
     </button>
   </div>
 </form>
