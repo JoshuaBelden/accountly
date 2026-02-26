@@ -185,6 +185,12 @@
 		bill_payment: 'Bill'
 	};
 
+	let selectionMode = false;
+	function toggleSelectionMode() {
+		selectionMode = !selectionMode;
+		if (!selectionMode) selectedIds = new Set();
+	}
+
 	let expandedId: string | null = null;
 	function toggleExpand(id: string) {
 		expandedId = expandedId === id ? null : id;
@@ -211,6 +217,16 @@
 		<h1 class="text-2xl font-bold text-gray-100">Transactions</h1>
 		<div class="flex gap-2">
 			<a href="/transactions?uncategorized=true" class="btn-secondary">Uncategorized</a>
+			<button
+				on:click={toggleSelectionMode}
+				class="btn-secondary {selectionMode ? 'border-indigo-500 text-indigo-300' : ''}"
+				title="Toggle selection mode"
+			>
+				<svg class="w-4 h-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+				</svg>
+				Select
+			</button>
 			{#if selectedAccount && !isCategoryFilter}
 				<button class="btn-secondary" on:click={() => (importOpen = true)}>
 					<svg class="w-4 h-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -327,6 +343,7 @@
 
 			<div class="card overflow-hidden p-0">
 				<!-- Header row with select-all -->
+				{#if selectionMode}
 				<div class="flex items-center gap-4 px-4 py-2 border-b border-gray-700 bg-gray-800/50">
 					<input
 						type="checkbox"
@@ -337,6 +354,7 @@
 					/>
 					<span class="text-xs text-gray-500 uppercase tracking-wide">Select page</span>
 				</div>
+				{/if}
 
 				<div class="divide-y divide-gray-700/50">
 					{#each pagedTransactions as tx (tx.id)}
@@ -355,6 +373,7 @@
 								on:keydown={(e) => e.key === 'Enter' && toggleExpand(tx.id)}
 							>
 								<!-- Checkbox -->
+								{#if selectionMode}
 								<input
 									type="checkbox"
 									checked={isSelected}
@@ -362,6 +381,7 @@
 									on:change={() => toggleRow(tx.id)}
 									class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-indigo-500 cursor-pointer flex-shrink-0"
 								/>
+								{/if}
 
 								<!-- Date -->
 								<div class="text-sm text-gray-400 tabular-nums w-20 flex-shrink-0">
