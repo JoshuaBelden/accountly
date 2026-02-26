@@ -1,15 +1,15 @@
-export * from './account';
-export * from './bill';
-export * from './paycheck';
-export * from './transaction';
-export * from './budget';
-export * from './planner';
+export * from "./account"
+export * from "./bill"
+export * from "./budget"
+export * from "./paycheck"
+export * from "./planner"
+export * from "./transaction"
 
-import type { PlannerSettings } from './planner';
+import type { PlannerSettings } from "./planner"
 
 export interface AppSettings {
-	planner: PlannerSettings;
-	currency: string;
-	locale: string;
-	lastExported?: string;
+  planner: PlannerSettings
+  currency: string
+  locale: string
+  lastExported?: string
 }

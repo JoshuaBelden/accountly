@@ -1,169 +1,166 @@
 <script lang="ts">
-	import { paychecksStore } from '$lib/stores/paychecks.store';
-	import { billsStore } from '$lib/stores/bills.store';
-	import { plannerStore } from '$lib/stores/planner.store';
-	import { transactionsStore } from '$lib/stores/transactions.store';
-	import { settingsStore } from '$lib/stores/settings.store';
-	import PaycheckColumn from '$lib/components/planner/PaycheckColumn.svelte';
-	import EmptyState from '$lib/components/shared/EmptyState.svelte';
-	import { budgetStore } from '$lib/stores/budget.store';
-	import SpendingChart from '$lib/components/budget/SpendingChart.svelte';
-	import { currentMonth, addMonths, formatMonth, getPayDaysInMonth } from '$lib/utils/date';
-	import type { Bill, BudgetCategory, Paycheck } from '$lib/types';
+  import SpendingChart from "$lib/components/budget/SpendingChart.svelte"
+  import PaycheckColumn from "$lib/components/planner/PaycheckColumn.svelte"
+  import EmptyState from "$lib/components/shared/EmptyState.svelte"
+  import { billsStore } from "$lib/stores/bills.store"
+  import { budgetStore } from "$lib/stores/budget.store"
+  import { paychecksStore } from "$lib/stores/paychecks.store"
+  import { plannerStore } from "$lib/stores/planner.store"
+  import { transactionsStore } from "$lib/stores/transactions.store"
+  import type { BudgetCategory } from "$lib/types"
+  import { addMonths, currentMonth, formatMonth, getPayDaysInMonth } from "$lib/utils/date"
 
-	let month = currentMonth();
+  let month = currentMonth()
 
-	function prevMonth() { month = addMonths(month, -1); }
-	function nextMonth() { month = addMonths(month, 1); }
+  function prevMonth() {
+    month = addMonths(month, -1)
+  }
+  function nextMonth() {
+    month = addMonths(month, 1)
+  }
 
-	// Compute all pay days in the current month, across all paychecks
-	$: payPeriods = $paychecksStore.flatMap((pc) =>
-		getPayDaysInMonth(pc, month).map((date) => ({ paycheck: pc, date }))
-	).sort((a, b) => a.date.localeCompare(b.date));
+  // Compute all pay days in the current month, across all paychecks
+  $: payPeriods = $paychecksStore
+    .flatMap(pc => getPayDaysInMonth(pc, month).map(date => ({ paycheck: pc, date })))
+    .sort((a, b) => a.date.localeCompare(b.date))
 
-	// Bills that are monthly (or applicable this month) and not yet assigned
-	$: monthAssignments = $plannerStore.filter((a) => a.plannerMonth === month);
-	$: assignedBillIds = new Set(monthAssignments.map((a) => a.billId));
-	$: unassignedBills = $billsStore.filter(
-		(b) => b.frequency === 'monthly' && !assignedBillIds.has(b.id)
-	);
+  // Bills that are monthly (or applicable this month) and not yet assigned
+  $: monthAssignments = $plannerStore.filter(a => a.plannerMonth === month)
+  $: assignedBillIds = new Set(monthAssignments.map(a => a.billId))
+  $: unassignedBills = $billsStore.filter(b => b.frequency === "monthly" && !assignedBillIds.has(b.id))
 
-	// All transactions for this month
-	$: monthTransactions = $transactionsStore.filter((t) => t.plannerMonth === month);
+  // All transactions for this month
+  $: monthTransactions = $transactionsStore.filter(t => t.plannerMonth === month)
 
-	// Auto-assign unassigned auto-pay bills to paychecks based on due date
-	function autoAssignBillsForMonth() {
-		if (payPeriods.length === 0) return;
-		const toAssign = $billsStore.filter((b) => b.autoPay && !assignedBillIds.has(b.id));
-		for (const bill of toAssign) {
-			let bestPeriod = payPeriods[0];
-			if (bill.dueDayOfMonth) {
-				const dueDay = bill.dueDayOfMonth;
-				const before = payPeriods.filter((p) => parseInt(p.date.split('-')[2]) <= dueDay);
-				if (before.length > 0) bestPeriod = before[before.length - 1];
-			}
-			plannerStore.assign({
-				id: crypto.randomUUID(),
-				plannerMonth: month,
-				billId: bill.id,
-				paycheckDate: bestPeriod.date
-			});
-		}
-	}
+  // Auto-assign unassigned auto-pay bills to paychecks based on due date
+  function autoAssignBillsForMonth() {
+    if (payPeriods.length === 0) return
+    const toAssign = $billsStore.filter(b => b.autoPay && !assignedBillIds.has(b.id))
+    for (const bill of toAssign) {
+      let bestPeriod = payPeriods[0]
+      if (bill.dueDayOfMonth) {
+        const dueDay = bill.dueDayOfMonth
+        const before = payPeriods.filter(p => parseInt(p.date.split("-")[2]) <= dueDay)
+        if (before.length > 0) bestPeriod = before[before.length - 1]
+      }
+      plannerStore.assign({
+        id: crypto.randomUUID(),
+        plannerMonth: month,
+        billId: bill.id,
+        paycheckDate: bestPeriod.date,
+      })
+    }
+  }
 
-	$: unassignedAutoPay = $billsStore.filter((b) => b.autoPay && !assignedBillIds.has(b.id));
+  $: unassignedAutoPay = $billsStore.filter(b => b.autoPay && !assignedBillIds.has(b.id))
 
-	// Budget categories for spending chart
-	let categories: BudgetCategory[] = [];
-	budgetStore.categories.subscribe((c: BudgetCategory[]) => (categories = c));
+  // Budget categories for spending chart
+  let categories: BudgetCategory[] = []
+  budgetStore.categories.subscribe((c: BudgetCategory[]) => (categories = c))
 
-	$: chartTransactions = $transactionsStore.filter(
-		(t) => t.plannerMonth === month || t.date.startsWith(month)
-	);
+  $: chartTransactions = $transactionsStore.filter(t => t.plannerMonth === month || t.date.startsWith(month))
 
-	$: chartData = categories.map((cat, i) => {
-		const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
-		const amount = chartTransactions
-			.filter((t) => {
-				if (t.type === 'income') return false;
-				if (t.splits?.length) return t.splits.some((s) => s.categoryId === cat.id);
-				return t.categoryId === cat.id;
-			})
-			.reduce((sum, t) => {
-				if (t.splits?.length) {
-					return sum + t.splits.filter((s) => s.categoryId === cat.id).reduce((ss, s) => ss + s.amount, 0);
-				}
-				return sum + t.amount;
-			}, 0);
-		return { label: cat.name, amount, color: colors[i % colors.length] };
-	}).filter((d) => d.amount > 0);
+  $: chartData = categories
+    .map((cat, i) => {
+      const colors = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16"]
+      const amount = chartTransactions
+        .filter(t => {
+          if (t.type === "income") return false
+          if (t.splits?.length) return t.splits.some(s => s.categoryId === cat.id)
+          return t.categoryId === cat.id
+        })
+        .reduce((sum, t) => {
+          if (t.splits?.length) {
+            return sum + t.splits.filter(s => s.categoryId === cat.id).reduce((ss, s) => ss + s.amount, 0)
+          }
+          return sum + t.amount
+        }, 0)
+      return { label: cat.name, amount, color: colors[i % colors.length] }
+    })
+    .filter(d => d.amount > 0)
 
-	// Summary stats
-	$: totalBillsAssigned = monthAssignments.length;
-	$: totalBillsCleared = monthAssignments.filter((a) =>
-		monthTransactions.find((t) => t.id === a.transactionId && t.clearedStatus === 'cleared')
-	).length;
+  // Summary stats
+  $: totalBillsAssigned = monthAssignments.length
+  $: totalBillsCleared = monthAssignments.filter(a =>
+    monthTransactions.find(t => t.id === a.transactionId && t.clearedStatus === "cleared"),
+  ).length
 </script>
 
 <div class="max-w-7xl mx-auto space-y-6">
-	<!-- Month navigation -->
-	<div class="flex items-center justify-between">
-		<div class="flex items-center gap-4">
-			<button class="btn-secondary px-3 py-1.5" on:click={prevMonth} aria-label="Previous month">
-				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-				</svg>
-			</button>
-			<h1 class="text-2xl font-bold text-gray-100">{formatMonth(month)}</h1>
-			<button class="btn-secondary px-3 py-1.5" on:click={nextMonth} aria-label="Next month">
-				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-				</svg>
-			</button>
-		</div>
+  <!-- Month navigation -->
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <button class="btn-secondary px-3 py-1.5" on:click={prevMonth} aria-label="Previous month">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <h1 class="text-2xl font-bold text-gray-100">{formatMonth(month)}</h1>
+      <button class="btn-secondary px-3 py-1.5" on:click={nextMonth} aria-label="Next month">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
 
-		<div class="flex items-center gap-3">
-			{#if unassignedAutoPay.length > 0 && payPeriods.length > 0}
-				<button class="btn-secondary" on:click={autoAssignBillsForMonth}>
-					Auto-assign ({unassignedAutoPay.length})
-				</button>
-			{/if}
-			{#if totalBillsAssigned > 0}
-				<div class="text-sm text-gray-400">
-					{totalBillsCleared}/{totalBillsAssigned} bills cleared
-				</div>
-			{/if}
-		</div>
-	</div>
+    <div class="flex items-center gap-3">
+      {#if unassignedAutoPay.length > 0 && payPeriods.length > 0}
+        <button class="btn-secondary" on:click={autoAssignBillsForMonth}>
+          Auto-assign ({unassignedAutoPay.length})
+        </button>
+      {/if}
+      {#if totalBillsAssigned > 0}
+        <div class="text-sm text-gray-400">
+          {totalBillsCleared}/{totalBillsAssigned} bills cleared
+        </div>
+      {/if}
+    </div>
+  </div>
 
-	{#if $paychecksStore.length === 0}
-		<EmptyState
-			title="No paychecks configured"
-			description="Set up your pay schedule in Accounts to use the Monthly Planner."
-		/>
-	{:else if payPeriods.length === 0}
-		<div class="text-center py-16 text-gray-500">
-			<p>No pay days found in {formatMonth(month)}.</p>
-			<p class="text-sm mt-1">Check your paycheck anchor dates in Accounts.</p>
-		</div>
-	{:else}
-		<!-- Paycheck columns -->
-		<div class="flex gap-4 pb-4">
-			{#each payPeriods as { paycheck, date } (`${paycheck.id}-${date}`)}
-				<div class="flex-1 min-w-0">
-					<PaycheckColumn
-						{paycheck}
-						paycheckDate={date}
-						plannerMonth={month}
-						{monthTransactions}
-						{unassignedBills}
-					/>
-				</div>
-			{/each}
-		</div>
+  {#if $paychecksStore.length === 0}
+    <EmptyState
+      title="No paychecks configured"
+      description="Set up your pay schedule in Accounts to use the Monthly Planner."
+    />
+  {:else if payPeriods.length === 0}
+    <div class="text-center py-16 text-gray-500">
+      <p>No pay days found in {formatMonth(month)}.</p>
+      <p class="text-sm mt-1">Check your paycheck anchor dates in Accounts.</p>
+    </div>
+  {:else}
+    <!-- Paycheck columns -->
+    <div class="flex gap-4 pb-4">
+      {#each payPeriods as { paycheck, date } (`${paycheck.id}-${date}`)}
+        <div class="flex-1 min-w-0">
+          <PaycheckColumn {paycheck} paycheckDate={date} plannerMonth={month} {monthTransactions} {unassignedBills} />
+        </div>
+      {/each}
+    </div>
 
-		<!-- Unassigned bills section -->
-		{#if unassignedBills.length > 0}
-			<div class="card">
-				<h2 class="text-sm font-semibold text-yellow-400 mb-3">
-					Unassigned Bills ({unassignedBills.length})
-				</h2>
-				<div class="space-y-2">
-					{#each unassignedBills as bill (bill.id)}
-						<div class="flex items-center justify-between text-sm py-1">
-							<span class="text-gray-300">{bill.name}</span>
-							<span class="text-gray-500 tabular-nums">${bill.amount.toFixed(2)}</span>
-						</div>
-					{/each}
-				</div>
-				<p class="text-xs text-gray-500 mt-3">These bills have no due day set. Assign them using the "+ Bill" button in each paycheck column.</p>
-			</div>
-		{/if}
+    <!-- Unassigned bills section -->
+    {#if unassignedBills.length > 0}
+      <div class="card">
+        <h2 class="text-sm font-semibold text-yellow-400 mb-3">
+          Unassigned Bills ({unassignedBills.length})
+        </h2>
+        <div class="space-y-2">
+          {#each unassignedBills as bill (bill.id)}
+            <div class="flex items-center justify-between text-sm py-1">
+              <span class="text-gray-300">{bill.name}</span>
+              <span class="text-gray-500 tabular-nums">${bill.amount.toFixed(2)}</span>
+            </div>
+          {/each}
+        </div>
+        <p class="text-xs text-gray-500 mt-3">
+          These bills have no due day set. Assign them using the "+ Bill" button in each paycheck column.
+        </p>
+      </div>
+    {/if}
 
-		<!-- Spending breakdown -->
-		<div class="card max-w-xs">
-			<h3 class="text-sm font-semibold text-gray-300 mb-4">Spending Breakdown</h3>
-			<SpendingChart data={chartData} />
-		</div>
-	{/if}
+    <!-- Spending breakdown -->
+    <div class="card max-w-xs">
+      <h3 class="text-sm font-semibold text-gray-300 mb-4">Spending Breakdown</h3>
+      <SpendingChart data={chartData} />
+    </div>
+  {/if}
 </div>

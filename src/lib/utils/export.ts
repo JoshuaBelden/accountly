@@ -1,29 +1,29 @@
-import { validateEnvelope, type ExportEnvelope } from '$lib/persistence/localStorage';
+import { validateEnvelope, type ExportEnvelope } from "$lib/persistence/localStorage"
 
 export function exportToFile(envelope: ExportEnvelope): void {
-	const json = JSON.stringify(envelope, null, 2);
-	const blob = new Blob([json], { type: 'application/json' });
-	const url = URL.createObjectURL(blob);
-	const a = document.createElement('a');
-	const now = new Date();
-	const date = now.toISOString().split('T')[0];
-	const time = now.toTimeString().slice(0, 8).replace(/:/g, '-');
-	a.href = url;
-	a.download = `accountly-export-${date}_${time}.json`;
-	a.click();
-	URL.revokeObjectURL(url);
+  const json = JSON.stringify(envelope, null, 2)
+  const blob = new Blob([json], { type: "application/json" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  const now = new Date()
+  const date = now.toISOString().split("T")[0]
+  const time = now.toTimeString().slice(0, 8).replace(/:/g, "-")
+  a.href = url
+  a.download = `accountly-export-${date}_${time}.json`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export async function importFromFile(file: File): Promise<ExportEnvelope> {
-	const text = await file.text();
-	let data: unknown;
-	try {
-		data = JSON.parse(text);
-	} catch {
-		throw new Error('Invalid JSON file');
-	}
-	if (!validateEnvelope(data)) {
-		throw new Error('File does not appear to be a valid Accountly export');
-	}
-	return data;
+  const text = await file.text()
+  let data: unknown
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error("Invalid JSON file")
+  }
+  if (!validateEnvelope(data)) {
+    throw new Error("File does not appear to be a valid Accountly export")
+  }
+  return data
 }
