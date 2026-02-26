@@ -59,6 +59,7 @@
   let monthlyDay = editPaycheck?.monthlyDay ?? 1
   let weeklyAnchorDate = editPaycheck?.weeklyAnchorDate ?? todayISO()
   let incomeType: IncomeType = editPaycheck?.incomeType ?? "paycheck"
+  let paycheckHints = editPaycheck?.hints ?? ""
 
   function now() {
     return new Date().toISOString()
@@ -142,6 +143,7 @@
         paycheckFrequency === "semimonthly" ? { firstDay: semimonthlyFirst, secondDay: semimonthlySecond } : undefined,
       monthlyDay: paycheckFrequency === "monthly" ? monthlyDay : undefined,
       weeklyAnchorDate: paycheckFrequency === "weekly" ? weeklyAnchorDate : undefined,
+      hints: paycheckHints || undefined,
     }
 
     if (editPaycheck) {
@@ -307,6 +309,20 @@
           {/if}
         {/each}
       </select>
+    </div>
+
+    <div>
+      <label class="label" for="pc-hints">Import Match Pattern (optional)</label>
+      <input
+        id="pc-hints"
+        class="input font-mono text-sm"
+        type="text"
+        bind:value={paycheckHints}
+        placeholder="e.g. direct deposit|payroll|adp"
+      />
+      <p class="mt-1 text-xs text-gray-500">
+        Regex matched against imported transaction descriptions to auto-identify this income.
+      </p>
     </div>
 
     {#if paycheckFrequency === "biweekly"}

@@ -18,6 +18,7 @@ export interface Paycheck {
   semimonthlyDays?: SemimonthlyDays
   monthlyDay?: number
   weeklyAnchorDate?: string
+  hints?: string
   notes?: string
   createdAt: string
   updatedAt: string

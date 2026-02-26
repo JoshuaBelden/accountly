@@ -8,6 +8,7 @@
   import { checkingAccounts, savingsAccounts } from "$lib/stores/accounts.store"
   import { billsStore } from "$lib/stores/bills.store"
   import { budgetStore } from "$lib/stores/budget.store"
+  import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
   import type { BudgetCategory } from "$lib/types"
@@ -160,11 +161,21 @@
       if (assignment) plannerStore.linkTransaction(assignment.id, txId)
       transactionsStore.update(txId, {
         billId,
+        paycheckId: undefined,
         type: "bill_payment",
         plannerMonth: month,
       })
     } else {
       transactionsStore.update(txId, { billId: undefined, type: "expense" })
+    }
+  }
+
+  function linkPaycheck(txId: string, paycheckId: string | undefined) {
+    if (paycheckId) {
+      plannerStore.clearTransactionLink(txId)
+      transactionsStore.update(txId, { paycheckId, billId: undefined, type: "income" })
+    } else {
+      transactionsStore.update(txId, { paycheckId: undefined, type: "expense" })
     }
   }
 
@@ -526,6 +537,21 @@
                         <span class="text-gray-300 italic">{tx.notes}</span>
                       </div>
                     {/if}
+                  </div>
+
+                  <!-- Income source assignment -->
+                  <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-700/40">
+                    <span class="text-xs text-gray-500 uppercase tracking-wide">Income</span>
+                    <select
+                      value={tx.paycheckId ?? ""}
+                      on:change={e => linkPaycheck(tx.id, e.currentTarget.value || undefined)}
+                      class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="">— None —</option>
+                      {#each $paychecksStore as paycheck}
+                        <option value={paycheck.id}>{paycheck.name}</option>
+                      {/each}
+                    </select>
                   </div>
 
                   <!-- Bill assignment -->

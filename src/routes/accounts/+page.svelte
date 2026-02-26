@@ -15,13 +15,20 @@
     loanAccounts,
     savingsAccounts,
   } from "$lib/stores/accounts.store"
+  import { billsStore } from "$lib/stores/bills.store"
   import { paychecksStore } from "$lib/stores/paychecks.store"
+  import { plannerStore } from "$lib/stores/planner.store"
+  import { transactionsStore } from "$lib/stores/transactions.store"
   import type { Account, AssetAccount, InvestmentAccount, LoanAccount, Paycheck } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
+  import { findMatchingPayDate } from "$lib/utils/date"
+  import { get } from "svelte/store"
 
   let modalOpen = false
   let editAccount: Account | null = null
   let editPaycheck: Paycheck | null = null
+  let updateMessage = ""
+  let updateMessageTimer: ReturnType<typeof setTimeout> | null = null
 
   function openAdd() {
     editAccount = null
@@ -66,17 +73,87 @@
     paycheck: "Paycheck",
     other: "Other",
   }
+
+  /** Re-tests all transactions against bill and paycheck hint patterns, updating any that match. */
+  function reapplyHints() {
+    const transactions = get(transactionsStore)
+    const bills = get(billsStore)
+    const paychecks = get(paychecksStore)
+    let matchCount = 0
+
+    for (const transaction of transactions) {
+      let matched = false
+
+      for (const bill of bills) {
+        if (!bill.hints) continue
+        try {
+          if (new RegExp(bill.hints, "i").test(transaction.description)) {
+            const month = transaction.date.substring(0, 7)
+            plannerStore.clearTransactionLink(transaction.id)
+            const assignments = plannerStore.getForMonth(month)
+            const assignment = assignments.find(a => a.billId === bill.id)
+            if (assignment) plannerStore.linkTransaction(assignment.id, transaction.id)
+            transactionsStore.update(transaction.id, {
+              billId: bill.id,
+              paycheckId: undefined,
+              type: "bill_payment",
+              plannerMonth: month,
+            })
+            matched = true
+            matchCount++
+            break
+          }
+        } catch {
+          /* invalid regex — skip */
+        }
+      }
+
+      if (!matched) {
+        for (const paycheck of paychecks) {
+          if (!paycheck.hints) continue
+          try {
+            if (new RegExp(paycheck.hints, "i").test(transaction.description)) {
+              const payDate = findMatchingPayDate(paycheck, transaction.date)
+              transactionsStore.update(transaction.id, {
+                paycheckId: paycheck.id,
+                billId: undefined,
+                type: "income",
+                clearedStatus: "cleared",
+                plannedPaycheckDate: payDate,
+                plannerMonth: payDate ? payDate.substring(0, 7) : transaction.date.substring(0, 7),
+              })
+              matched = true
+              matchCount++
+              break
+            }
+          } catch {
+            /* invalid regex — skip */
+          }
+        }
+      }
+    }
+
+    updateMessage = `Updated ${matchCount} transaction${matchCount === 1 ? "" : "s"}`
+    if (updateMessageTimer) clearTimeout(updateMessageTimer)
+    updateMessageTimer = setTimeout(() => (updateMessage = ""), 4000)
+  }
 </script>
 
 <div class="max-w-4xl mx-auto space-y-8">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-100">Accounts</h1>
-    <button class="btn-primary" on:click={openAdd}>
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-      </svg>
-      Add Account
-    </button>
+    <div class="flex items-center gap-3">
+      {#if updateMessage}
+        <span class="text-sm text-emerald-400">{updateMessage}</span>
+      {/if}
+      <button class="btn-secondary" on:click={reapplyHints}>Update Transactions</button>
+      <button class="btn-primary" on:click={openAdd}>
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Add Account
+      </button>
+    </div>
   </div>
 
   <!-- Checking -->

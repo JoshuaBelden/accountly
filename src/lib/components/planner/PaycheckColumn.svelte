@@ -2,7 +2,6 @@
   import Modal from "$lib/components/shared/Modal.svelte"
   import { billsStore } from "$lib/stores/bills.store"
   import { plannerStore } from "$lib/stores/planner.store"
-  import { transactionsStore } from "$lib/stores/transactions.store"
   import type { Bill, Paycheck, PlannedBillAssignment, Transaction } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
   import { formatDateShort } from "$lib/utils/date"
@@ -38,27 +37,6 @@
     t => t.plannedPaycheckDate === paycheckDate && t.type !== "bill_payment" && t.paycheckId !== paycheck.id,
   )
 
-  function markReceived() {
-    if (paycheckTx) {
-      transactionsStore.clearStatus(paycheckTx.id, isReceived ? "pending" : "cleared")
-    } else {
-      transactionsStore.add({
-        id: crypto.randomUUID(),
-        date: paycheckDate,
-        description: paycheck.name,
-        amount: paycheck.expectedAmount,
-        type: "income",
-        accountId: paycheck.accountId,
-        clearedStatus: "cleared",
-        paycheckId: paycheck.id,
-        plannedPaycheckDate: paycheckDate,
-        plannerMonth,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-    }
-  }
-
   $: billTotal = assignedBills.reduce((s, { assignment, bill }) => s + (assignment.overrideAmount ?? bill.amount), 0)
   $: txTotal = columnTransactions.reduce((s, t) => s + (t.type === "income" ? -t.amount : t.amount), 0)
   $: totalOut = billTotal + txTotal
@@ -87,19 +65,16 @@
     <div class="text-sm text-indigo-300">{formatDateShort(paycheckDate)}</div>
     <div class="flex items-center justify-between mt-1">
       <div class="text-xs text-emerald-400 font-medium">+{formatCurrency(paycheck.expectedAmount)}</div>
-      <button
-        on:click={markReceived}
-        title={isReceived ? "Mark as pending" : "Mark as received"}
-        class="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded transition-colors
-				{isReceived
-          ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-700/50'
-          : 'text-gray-500 hover:text-emerald-400 border border-transparent hover:border-gray-600'}"
-      >
-        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-        </svg>
-        {isReceived ? "Received" : "Receive"}
-      </button>
+      {#if isReceived}
+        <span class="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-400 border border-emerald-700/50">
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+          </svg>
+          Received
+        </span>
+      {:else}
+        <span class="text-xs text-gray-600">Not received</span>
+      {/if}
     </div>
   </div>
 

@@ -117,6 +117,30 @@ export function getPayDaysInMonth(paycheck: Paycheck, month: string): string[] {
   return days.sort()
 }
 
+/**
+ * Finds the scheduled pay date closest to a given transaction date, within a tolerance window.
+ * Checks the transaction's month and adjacent months to handle boundary cases.
+ * @returns The matching pay date string (YYYY-MM-DD), or undefined if none within tolerance.
+ */
+export function findMatchingPayDate(paycheck: Paycheck, txDate: string, toleranceDays = 4): string | undefined {
+  const txTime = new Date(txDate + "T00:00:00").getTime()
+  const toleranceMs = toleranceDays * 86400000
+  const txMonth = txDate.substring(0, 7)
+
+  const candidates = [
+    ...getPayDaysInMonth(paycheck, addMonths(txMonth, -1)),
+    ...getPayDaysInMonth(paycheck, txMonth),
+    ...getPayDaysInMonth(paycheck, addMonths(txMonth, 1)),
+  ]
+
+  for (const payDate of candidates) {
+    const payTime = new Date(payDate + "T00:00:00").getTime()
+    if (Math.abs(txTime - payTime) <= toleranceMs) return payDate
+  }
+
+  return undefined
+}
+
 export function formatDate(iso: string): string {
   const [year, month, day] = iso.split("-").map(Number)
   const d = new Date(year, month - 1, day)

@@ -3,12 +3,13 @@
   import { accountsStore, checkingAccounts, savingsAccounts } from "$lib/stores/accounts.store"
   import { billsStore } from "$lib/stores/bills.store"
   import { budgetStore } from "$lib/stores/budget.store"
+  import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
-  import type { Bill, Transaction } from "$lib/types"
+  import type { Bill, Paycheck, Transaction } from "$lib/types"
   import { parseCsv, type ParsedCsvRow } from "$lib/utils/csvImport"
   import { formatCurrency } from "$lib/utils/currency"
-  import { formatDateShort, todayISO } from "$lib/utils/date"
+  import { findMatchingPayDate, formatDateShort, todayISO } from "$lib/utils/date"
   import { createEventDispatcher } from "svelte"
   import { get } from "svelte/store"
 
@@ -16,7 +17,12 @@
 
   const dispatch = createEventDispatcher()
 
-  type RowWithMeta = ParsedCsvRow & { isDuplicate: boolean; matchedBill?: Bill; matchedCategoryLabel?: string }
+  type RowWithMeta = ParsedCsvRow & {
+    isDuplicate: boolean
+    matchedBill?: Bill
+    matchedPaycheck?: Paycheck
+    matchedCategoryLabel?: string
+  }
 
   let step: "upload" | "preview" = "upload"
   let selectedAccountId = ""
@@ -66,10 +72,11 @@
         const existingKeys = new Set(existing.map(t => `${t.date}|${t.description}|${t.amount}`))
         parsedRows = rows.map(r => {
           const matchedBill = matchBill(r.description)
+          const matchedPaycheck = !matchedBill && r.rawType === "Credit" ? matchPaycheck(r.description) : undefined
           let matchedCategoryLabel: string | undefined
           if (matchedBill?.categoryId) {
             matchedCategoryLabel = getCategoryLabel(matchedBill.categoryId, matchedBill.subcategoryId)
-          } else {
+          } else if (!matchedPaycheck) {
             const catMatch = matchCategory(r.description)
             if (catMatch) matchedCategoryLabel = getCategoryLabel(catMatch.categoryId, catMatch.subcategoryId)
           }
@@ -77,6 +84,7 @@
             ...r,
             isDuplicate: existingKeys.has(`${r.date}|${r.description}|${r.amount}`),
             matchedBill,
+            matchedPaycheck,
             matchedCategoryLabel,
           }
         })
@@ -132,6 +140,19 @@
     return undefined
   }
 
+  function matchPaycheck(description: string): Paycheck | undefined {
+    const paychecks = get(paychecksStore)
+    for (const paycheck of paychecks) {
+      if (!paycheck.hints) continue
+      try {
+        if (new RegExp(paycheck.hints, "i").test(description)) return paycheck
+      } catch {
+        /* invalid regex — skip */
+      }
+    }
+    return undefined
+  }
+
   function matchCategory(description: string): { categoryId: string; subcategoryId?: string } | undefined {
     const categories = get(budgetStore.categories)
     for (const cat of categories) {
@@ -174,21 +195,27 @@
       if (!selected[i]) return
 
       const bill = row.matchedBill
-      const categoryMatch = !bill ? matchCategory(row.description) : undefined
+      const paycheck = row.matchedPaycheck
+      const categoryMatch = !bill && !paycheck ? matchCategory(row.description) : undefined
+      const paycheckPayDate = paycheck ? findMatchingPayDate(paycheck, row.date) : undefined
 
       const tx: Transaction = {
         id: crypto.randomUUID(),
         date: row.date,
         description: row.description,
         amount: row.amount,
-        type: bill ? "bill_payment" : row.rawType === "Credit" ? "income" : "expense",
+        type: bill ? "bill_payment" : paycheck || row.rawType === "Credit" ? "income" : "expense",
         accountId: bill?.accountId ?? selectedAccountId,
         clearedStatus: "cleared",
         imported: true,
         billId: bill?.id,
+        paycheckId: paycheck?.id,
+        plannedPaycheckDate: paycheckPayDate,
         categoryId: bill?.categoryId ?? categoryMatch?.categoryId,
         subcategoryId: bill?.subcategoryId ?? categoryMatch?.subcategoryId,
-        plannerMonth: row.date.substring(0, 7),
+        plannerMonth: paycheckPayDate
+          ? paycheckPayDate.substring(0, 7)
+          : row.date.substring(0, 7),
         createdAt: now,
         updatedAt: now,
       }
@@ -329,6 +356,9 @@
                     <span class="block truncate" title={row.description}>{row.description}</span>
                     {#if row.matchedBill}
                       <span class="text-xs text-indigo-400">Bill: {row.matchedBill.name}</span>
+                    {/if}
+                    {#if row.matchedPaycheck}
+                      <span class="text-xs text-emerald-400">Income: {row.matchedPaycheck.name}</span>
                     {/if}
                     {#if row.matchedCategoryLabel}
                       <span class="text-xs text-emerald-400">Category: {row.matchedCategoryLabel}</span>
