@@ -33,6 +33,11 @@ function createPlannerStore() {
 				list.map((a) => (a.id === assignmentId ? { ...a, transactionId } : a))
 			);
 		},
+		clearTransactionLink(transactionId: string) {
+			store.update((list) =>
+				list.map((a) => (a.transactionId === transactionId ? { ...a, transactionId: undefined } : a))
+			);
+		},
 		setOverrideAmount(assignmentId: string, amount: number | undefined) {
 			store.update((list) =>
 				list.map((a) => (a.id === assignmentId ? { ...a, overrideAmount: amount } : a))

@@ -4,17 +4,19 @@
 	import { transactionsStore } from '$lib/stores/transactions.store';
 	import { accountsStore, checkingAccounts, savingsAccounts } from '$lib/stores/accounts.store';
 	import { budgetStore } from '$lib/stores/budget.store';
+	import { billsStore } from '$lib/stores/bills.store';
+	import { plannerStore } from '$lib/stores/planner.store';
 	import Modal from '$lib/components/shared/Modal.svelte';
 	import { parseCsv, type ParsedCsvRow } from '$lib/utils/csvImport';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { formatDateShort, todayISO } from '$lib/utils/date';
-	import type { Transaction } from '$lib/types';
+	import type { Bill, Transaction } from '$lib/types';
 
 	export let open = false;
 
 	const dispatch = createEventDispatcher();
 
-	type RowWithMeta = ParsedCsvRow & { isDuplicate: boolean };
+	type RowWithMeta = ParsedCsvRow & { isDuplicate: boolean; matchedBill?: Bill };
 
 	let step: 'upload' | 'preview' = 'upload';
 	let selectedAccountId = '';
@@ -68,7 +70,8 @@
 				);
 				parsedRows = rows.map((r) => ({
 					...r,
-					isDuplicate: existingKeys.has(`${r.date}|${r.description}|${r.amount}`)
+					isDuplicate: existingKeys.has(`${r.date}|${r.description}|${r.amount}`),
+					matchedBill: matchBill(r.description)
 				}));
 				selected = parsedRows.map((r) => !r.isDuplicate);
 				if (accounts.length === 1) selectedAccountId = accounts[0].id;
@@ -109,6 +112,17 @@
 		selected = parsedRows.map((r) => !r.isDuplicate);
 	}
 
+	function matchBill(description: string): Bill | undefined {
+		const bills = get(billsStore);
+		for (const bill of bills) {
+			if (!bill.hints) continue;
+			try {
+				if (new RegExp(bill.hints, 'i').test(description)) return bill;
+			} catch { /* invalid regex — skip */ }
+		}
+		return undefined;
+	}
+
 	function matchCategory(description: string): { categoryId: string; subcategoryId?: string } | undefined {
 		const categories = get(budgetStore.categories);
 		for (const cat of categories) {
@@ -135,21 +149,37 @@
 		const now = new Date().toISOString();
 		parsedRows.forEach((row, i) => {
 			if (!selected[i]) return;
-			const match = matchCategory(row.description);
+
+			const bill = row.matchedBill;
+			const categoryMatch = !bill ? matchCategory(row.description) : undefined;
+
 			const tx: Transaction = {
 				id: crypto.randomUUID(),
 				date: row.date,
 				description: row.description,
 				amount: row.amount,
-				type: row.rawType === 'Credit' ? 'income' : 'expense',
-				accountId: selectedAccountId,
+				type: bill ? 'bill_payment' : row.rawType === 'Credit' ? 'income' : 'expense',
+				accountId: bill?.accountId ?? selectedAccountId,
 				clearedStatus: 'cleared',
 				imported: true,
-				...match,
+				billId: bill?.id,
+				categoryId: bill?.categoryId ?? categoryMatch?.categoryId,
+				subcategoryId: bill?.subcategoryId ?? categoryMatch?.subcategoryId,
+				plannerMonth: row.date.substring(0, 7),
 				createdAt: now,
 				updatedAt: now
 			};
 			transactionsStore.add(tx);
+
+			// Link to planner assignment if one exists for this bill + month
+			if (bill) {
+				const month = row.date.substring(0, 7);
+				const assignments = plannerStore.getForMonth(month);
+				const assignment = assignments.find((a) => a.billId === bill.id);
+				if (assignment) {
+					plannerStore.linkTransaction(assignment.id, tx.id);
+				}
+			}
 		});
 		if (balanceUpdate !== null) {
 			accountsStore.update(selectedAccountId, { balance: balanceUpdate });
@@ -287,6 +317,9 @@
 									</td>
 									<td class="px-3 py-2 text-gray-200 max-w-xs">
 										<span class="block truncate" title={row.description}>{row.description}</span>
+										{#if row.matchedBill}
+											<span class="text-xs text-indigo-400">Bill: {row.matchedBill.name}</span>
+										{/if}
 									</td>
 									<td class="px-3 py-2">
 										{#if row.rawType === 'Credit'}

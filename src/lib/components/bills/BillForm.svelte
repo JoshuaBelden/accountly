@@ -17,6 +17,7 @@
 	let accountId = editBill?.accountId ?? '';
 	let categoryId = editBill?.categoryId ?? '';
 	let subcategoryId = editBill?.subcategoryId ?? '';
+	let hints = editBill?.hints ?? '';
 	let notes = editBill?.notes ?? '';
 
 	function now() { return new Date().toISOString(); }
@@ -39,6 +40,7 @@
 			accountId: accountId || undefined,
 			categoryId: categoryId || undefined,
 			subcategoryId: subcategoryId || undefined,
+			hints: hints || undefined,
 			notes: notes || undefined,
 			createdAt: editBill?.createdAt ?? now(),
 			updatedAt: now()
@@ -124,6 +126,18 @@
 	<div class="flex items-center gap-3">
 		<input id="autopay" type="checkbox" bind:checked={autoPay} class="w-4 h-4 accent-indigo-500" />
 		<label for="autopay" class="text-sm text-gray-300 cursor-pointer">Auto-pay enabled</label>
+	</div>
+
+	<div>
+		<label class="label" for="bill-hints">Import Match Pattern (optional)</label>
+		<input
+			id="bill-hints"
+			class="input font-mono text-sm"
+			type="text"
+			bind:value={hints}
+			placeholder="e.g. electric|utility|xcel"
+		/>
+		<p class="mt-1 text-xs text-gray-500">Regex matched against imported transaction descriptions to auto-resolve this bill.</p>
 	</div>
 
 	<div>

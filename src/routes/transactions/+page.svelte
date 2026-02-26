@@ -2,6 +2,8 @@
 	import { checkingAccounts, savingsAccounts } from '$lib/stores/accounts.store';
 	import { transactionsStore } from '$lib/stores/transactions.store';
 	import { budgetStore } from '$lib/stores/budget.store';
+	import { billsStore } from '$lib/stores/bills.store';
+	import { plannerStore } from '$lib/stores/planner.store';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { formatDateShort } from '$lib/utils/date';
 	import type { BudgetCategory } from '$lib/types';
@@ -147,6 +149,25 @@
 			return sub ? `${cat.name} › ${sub.name}` : cat.name;
 		}
 		return cat.name;
+	}
+
+	function linkBill(txId: string, txDate: string, billId: string | undefined) {
+		// Remove any existing planner link for this transaction
+		plannerStore.clearTransactionLink(txId);
+
+		if (billId) {
+			const month = txDate.substring(0, 7);
+			const assignments = plannerStore.getForMonth(month);
+			const assignment = assignments.find((a) => a.billId === billId);
+			if (assignment) plannerStore.linkTransaction(assignment.id, txId);
+			transactionsStore.update(txId, {
+				billId,
+				type: 'bill_payment',
+				plannerMonth: month
+			});
+		} else {
+			transactionsStore.update(txId, { billId: undefined, type: 'expense' });
+		}
 	}
 
 	const typeColors: Record<string, string> = {
@@ -399,6 +420,21 @@
 												<span class="text-gray-300 italic">{tx.notes}</span>
 											</div>
 										{/if}
+									</div>
+
+									<!-- Bill assignment -->
+									<div class="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-700/40">
+										<span class="text-xs text-gray-500 uppercase tracking-wide">Bill</span>
+										<select
+											value={tx.billId ?? ''}
+											on:change={(e) => linkBill(tx.id, tx.date, e.currentTarget.value || undefined)}
+											class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+										>
+											<option value="">— None —</option>
+											{#each $billsStore as bill}
+												<option value={bill.id}>{bill.name}</option>
+											{/each}
+										</select>
 									</div>
 
 									<!-- Category assignment -->

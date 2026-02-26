@@ -17,6 +17,7 @@ export interface Bill {
 	accountId?: string;
 	categoryId?: string;
 	subcategoryId?: string;
+	hints?: string;
 	notes?: string;
 	createdAt: string;
 	updatedAt: string;
