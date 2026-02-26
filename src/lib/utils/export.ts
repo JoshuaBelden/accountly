@@ -1,15 +1,34 @@
 import { validateEnvelope, type ExportEnvelope } from "$lib/persistence/localStorage"
 
-export function exportToFile(envelope: ExportEnvelope): void {
+/** Exports data as a JSON file, prompting the user to choose a save location when supported. */
+export async function exportToFile(envelope: ExportEnvelope): Promise<void> {
   const json = JSON.stringify(envelope, null, 2)
-  const blob = new Blob([json], { type: "application/json" })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
   const now = new Date()
   const date = now.toISOString().split("T")[0]
   const time = now.toTimeString().slice(0, 8).replace(/:/g, "-")
+  const filename = `accountly-export-${date}_${time}.json`
+
+  if ("showSaveFilePicker" in window) {
+    try {
+      const handle = await (window as Window & { showSaveFilePicker: Function }).showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: "JSON file", accept: { "application/json": [".json"] } }],
+      })
+      const writable = await handle.createWritable()
+      await writable.write(json)
+      await writable.close()
+      return
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return
+      // Fall through to legacy download on other errors
+    }
+  }
+
+  const blob = new Blob([json], { type: "application/json" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
   a.href = url
-  a.download = `accountly-export-${date}_${time}.json`
+  a.download = filename
   a.click()
   URL.revokeObjectURL(url)
 }

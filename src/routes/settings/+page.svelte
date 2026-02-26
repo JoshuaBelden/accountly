@@ -21,7 +21,7 @@
   budgetStore.categories.subscribe((c: BudgetCategory[]) => (categories = c))
   budgetStore.overrides.subscribe((o: MonthlyBudgetOverride[]) => (overrides = o))
 
-  function handleExport() {
+  async function handleExport() {
     const envelope = exportAllData(
       $accountsStore,
       $billsStore,
@@ -33,7 +33,7 @@
       $settingsStore,
     )
     settingsStore.update(s => ({ ...s, lastExported: new Date().toISOString() }))
-    exportToFile(envelope)
+    await exportToFile(envelope)
   }
 
   async function handleImport(e: Event) {
