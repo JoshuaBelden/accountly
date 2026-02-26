@@ -37,7 +37,10 @@
     t => t.plannedPaycheckDate === paycheckDate && t.type !== "bill_payment" && t.paycheckId !== paycheck.id,
   )
 
-  $: billTotal = assignedBills.reduce((s, { assignment, bill }) => s + (assignment.overrideAmount ?? bill.amount), 0)
+  $: billTotal = assignedBills.reduce((s, { assignment, bill }) => {
+    const linked = assignment.transactionId ? monthTransactions.find(t => t.id === assignment.transactionId) : null
+    return s + (linked?.clearedStatus === "cleared" ? linked.amount : (assignment.overrideAmount ?? bill.amount))
+  }, 0)
   $: txTotal = columnTransactions.reduce((s, t) => s + (t.type === "income" ? -t.amount : t.amount), 0)
   $: totalOut = billTotal + txTotal
   $: clearedCount = assignedBills.filter(
@@ -64,7 +67,7 @@
     <div class="font-semibold text-gray-100">{paycheck.name}</div>
     <div class="text-sm text-indigo-300">{formatDateShort(paycheckDate)}</div>
     <div class="flex items-center justify-between mt-1">
-      <div class="text-xs text-emerald-400 font-medium">+{formatCurrency(paycheck.expectedAmount)}</div>
+      <div class="text-xs text-emerald-400 font-medium">+{formatCurrency(isReceived && paycheckTx ? paycheckTx.amount : paycheck.expectedAmount)}</div>
       {#if isReceived}
         <span class="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-400 border border-emerald-700/50">
           <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

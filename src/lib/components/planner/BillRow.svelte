@@ -12,8 +12,8 @@
   $: transaction = assignment.transactionId ? $transactionsStore.find(t => t.id === assignment.transactionId) : null
 
   $: cleared = transaction?.clearedStatus === "cleared"
-  $: amount = assignment.overrideAmount ?? bill.amount
-  $: isOverridden = assignment.overrideAmount !== undefined && assignment.overrideAmount !== bill.amount
+  $: amount = cleared && transaction ? transaction.amount : (assignment.overrideAmount ?? bill.amount)
+  $: isOverridden = !cleared && assignment.overrideAmount !== undefined && assignment.overrideAmount !== bill.amount
 
   let editingAmount = false
   let inputValue = 0

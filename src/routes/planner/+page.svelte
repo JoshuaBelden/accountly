@@ -104,11 +104,17 @@
   $: totalSpent = chartData.reduce((sum, d) => sum + d.amount, 0)
   $: remainingBudget = totalBudgeted - totalSpent
 
-  // Cash flow: expected income from paychecks vs planned bill expenses
-  $: expectedIncome = payPeriods.reduce((sum, pp) => sum + pp.paycheck.expectedAmount, 0)
+  // Cash flow: actual amounts when cleared, otherwise expected
+  $: expectedIncome = payPeriods.reduce((sum, pp) => {
+    const paycheckTx = monthTransactions.find(
+      t => t.paycheckId === pp.paycheck.id && t.plannedPaycheckDate === pp.date && t.type === "income" && t.clearedStatus === "cleared",
+    )
+    return sum + (paycheckTx ? paycheckTx.amount : pp.paycheck.expectedAmount)
+  }, 0)
   $: expectedExpenses = monthAssignments.reduce((sum, assignment) => {
     const bill = $billsStore.find(b => b.id === assignment.billId)
-    return sum + (assignment.overrideAmount ?? bill?.amount ?? 0)
+    const linked = assignment.transactionId ? monthTransactions.find(t => t.id === assignment.transactionId) : null
+    return sum + (linked?.clearedStatus === "cleared" ? linked.amount : (assignment.overrideAmount ?? bill?.amount ?? 0))
   }, 0)
   $: netCashFlow = expectedIncome - expectedExpenses
 </script>
