@@ -1,5 +1,6 @@
 <script lang="ts">
   export let data: { label: string; amount: number; color: string }[]
+  export let horizontal = false
 
   $: total = data.reduce((s, d) => s + d.amount, 0)
 
@@ -62,7 +63,7 @@
 {#if total === 0}
   <div class="flex items-center justify-center h-40 text-gray-500 text-sm">No spending data</div>
 {:else}
-  <div class="flex flex-col items-center gap-4">
+  <div class="flex {horizontal ? 'flex-row items-center gap-6' : 'flex-col items-center gap-4'}">
     <svg viewBox="0 0 {width} {height}" class="w-40 h-40 flex-shrink-0">
       {#each segments as seg}
         {#if seg.endAngle - seg.startAngle > 0.5}
@@ -75,7 +76,7 @@
       >
     </svg>
 
-    <div class="w-full flex flex-col gap-1.5">
+    <div class="{horizontal ? 'flex-1' : 'w-full'} flex flex-col gap-1.5">
       {#each data as d}
         <div class="flex items-center gap-2 text-xs">
           <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background: {d.color}"></span>

@@ -33,6 +33,18 @@ function createPlannerStore() {
     setOverrideAmount(assignmentId: string, amount: number | undefined) {
       store.update(list => list.map(a => (a.id === assignmentId ? { ...a, overrideAmount: amount } : a)))
     },
+    /** Marks or unmarks a bill as manually paid for a given month. Creates a record if none exists. */
+    setManuallyPaid(billId: string, plannerMonth: string, paid: boolean) {
+      store.update(list => {
+        const existing = list.find(a => a.billId === billId && a.plannerMonth === plannerMonth)
+        if (existing) {
+          return list.map(a =>
+            a.billId === billId && a.plannerMonth === plannerMonth ? { ...a, manuallyPaid: paid } : a,
+          )
+        }
+        return [...list, { id: crypto.randomUUID(), plannerMonth, billId, manuallyPaid: paid }]
+      })
+    },
     getForMonth(month: string) {
       let result: PlannedBillAssignment[] = []
       store.subscribe(list => {

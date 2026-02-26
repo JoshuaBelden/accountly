@@ -1,6 +1,7 @@
 <script lang="ts">
   import SpendingChart from "$lib/components/budget/SpendingChart.svelte"
-  import PaycheckColumn from "$lib/components/planner/PaycheckColumn.svelte"
+  import BillRow from "$lib/components/planner/BillRow.svelte"
+  import IncomeRow from "$lib/components/planner/IncomeRow.svelte"
   import EmptyState from "$lib/components/shared/EmptyState.svelte"
   import { billsStore } from "$lib/stores/bills.store"
   import { budgetStore } from "$lib/stores/budget.store"
@@ -8,8 +9,8 @@
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
   import type { BudgetCategory, MonthlyBudgetOverride } from "$lib/types"
-  import { addMonths, currentMonth, formatMonth, getPayDaysInMonth } from "$lib/utils/date"
   import { formatCurrency } from "$lib/utils/currency"
+  import { addMonths, currentMonth, formatMonth, getPayDaysInMonth } from "$lib/utils/date"
 
   let month = currentMonth()
 
@@ -20,7 +21,7 @@
     month = addMonths(month, 1)
   }
 
-  // Compute all pay days in the current month — paycheck-type first, then other income
+  // All income periods — paycheck-type first, then other income
   $: payPeriods = [
     ...$paychecksStore
       .filter(pc => (pc.incomeType ?? "paycheck") === "paycheck")
@@ -32,36 +33,44 @@
       .sort((a, b) => a.date.localeCompare(b.date)),
   ]
 
-  // Bills that are monthly (or applicable this month) and not yet assigned
+  // Monthly bills sorted by due day (bills with no due day sort last)
+  $: monthlyBills = $billsStore
+    .filter(b => b.frequency === "monthly")
+    .slice()
+    .sort((a, b) => (a.dueDayOfMonth ?? 99) - (b.dueDayOfMonth ?? 99))
+
   $: monthAssignments = $plannerStore.filter(a => a.plannerMonth === month)
-  $: assignedBillIds = new Set(monthAssignments.map(a => a.billId))
-  $: unassignedBills = $billsStore.filter(b => b.frequency === "monthly" && !assignedBillIds.has(b.id))
+  $: monthTransactions = $transactionsStore.filter(t => t.plannerMonth === month || t.date.startsWith(month))
 
-  // All transactions for this month
-  $: monthTransactions = $transactionsStore.filter(t => t.plannerMonth === month)
-
-  // Auto-assign unassigned auto-pay bills to paychecks based on due date
-  function autoAssignBillsForMonth() {
-    const paycheckPeriods = payPeriods.filter(p => (p.paycheck.incomeType ?? "paycheck") === "paycheck")
-    if (paycheckPeriods.length === 0) return
-    const toAssign = $billsStore.filter(b => b.autoPay && !assignedBillIds.has(b.id))
-    for (const bill of toAssign) {
-      let bestPeriod = paycheckPeriods[0]
-      if (bill.dueDayOfMonth) {
-        const dueDay = bill.dueDayOfMonth
-        const before = paycheckPeriods.filter(p => parseInt(p.date.split("-")[2]) <= dueDay)
-        if (before.length > 0) bestPeriod = before[before.length - 1]
-      }
-      plannerStore.assign({
-        id: crypto.randomUUID(),
-        plannerMonth: month,
-        billId: bill.id,
-        paycheckDate: bestPeriod.date,
-      })
+  // Income line items for summary
+  $: incomeItems = payPeriods.map(pp => {
+    const paycheckTx = monthTransactions.find(
+      t =>
+        t.paycheckId === pp.paycheck.id &&
+        t.plannedPaycheckDate === pp.date &&
+        t.type === "income" &&
+        t.clearedStatus === "cleared",
+    )
+    return {
+      paycheck: pp.paycheck,
+      date: pp.date,
+      amount: paycheckTx ? paycheckTx.amount : pp.paycheck.expectedAmount,
+      isReceived: !!paycheckTx,
     }
-  }
+  })
+  $: totalIncome = incomeItems.reduce((sum, item) => sum + item.amount, 0)
 
-  $: unassignedAutoPay = $billsStore.filter(b => b.autoPay && !assignedBillIds.has(b.id))
+  // Bill line items for summary
+  $: billItems = monthlyBills.map(bill => {
+    const assignment = monthAssignments.find(a => a.billId === bill.id) ?? null
+    const linkedTx = assignment?.transactionId ? monthTransactions.find(t => t.id === assignment.transactionId) : null
+    const isPaid = linkedTx?.clearedStatus === "cleared" || assignment?.manuallyPaid === true
+    const amount =
+      linkedTx?.clearedStatus === "cleared" && linkedTx ? linkedTx.amount : (assignment?.overrideAmount ?? bill.amount)
+    return { bill, isPaid, amount }
+  })
+  $: totalBills = billItems.reduce((sum, item) => sum + item.amount, 0)
+  $: netCashFlow = totalIncome - totalBills
 
   // Budget categories for spending chart
   let categories: BudgetCategory[] = []
@@ -89,65 +98,22 @@
       return { label: cat.name, amount, color: colors[i % colors.length] }
     })
     .filter(d => d.amount > 0)
-
-  // Summary stats
-  $: totalBillsAssigned = monthAssignments.length
-  $: totalBillsCleared = monthAssignments.filter(a =>
-    monthTransactions.find(t => t.id === a.transactionId && t.clearedStatus === "cleared"),
-  ).length
-
-  // Monthly budget summary
-  $: totalBudgeted = categories.reduce((sum, cat) => {
-    const override = overrides.find(o => o.categoryId === cat.id && !o.subcategoryId && o.month === month)
-    return sum + (override?.budgetAmount ?? cat.monthlyBudget)
-  }, 0)
-  $: totalSpent = chartData.reduce((sum, d) => sum + d.amount, 0)
-  $: remainingBudget = totalBudgeted - totalSpent
-
-  // Cash flow: actual amounts when cleared, otherwise expected
-  $: expectedIncome = payPeriods.reduce((sum, pp) => {
-    const paycheckTx = monthTransactions.find(
-      t => t.paycheckId === pp.paycheck.id && t.plannedPaycheckDate === pp.date && t.type === "income" && t.clearedStatus === "cleared",
-    )
-    return sum + (paycheckTx ? paycheckTx.amount : pp.paycheck.expectedAmount)
-  }, 0)
-  $: expectedExpenses = monthAssignments.reduce((sum, assignment) => {
-    const bill = $billsStore.find(b => b.id === assignment.billId)
-    const linked = assignment.transactionId ? monthTransactions.find(t => t.id === assignment.transactionId) : null
-    return sum + (linked?.clearedStatus === "cleared" ? linked.amount : (assignment.overrideAmount ?? bill?.amount ?? 0))
-  }, 0)
-  $: netCashFlow = expectedIncome - expectedExpenses
 </script>
 
 <div class="max-w-7xl mx-auto space-y-6">
   <!-- Month navigation -->
-  <div class="flex items-center justify-between">
-    <div class="flex items-center gap-4">
-      <button class="btn-secondary px-3 py-1.5" on:click={prevMonth} aria-label="Previous month">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-      <h1 class="text-2xl font-bold text-gray-100">{formatMonth(month)}</h1>
-      <button class="btn-secondary px-3 py-1.5" on:click={nextMonth} aria-label="Next month">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-    </div>
-
-    <div class="flex items-center gap-3">
-      {#if unassignedAutoPay.length > 0 && payPeriods.length > 0}
-        <button class="btn-secondary" on:click={autoAssignBillsForMonth}>
-          Auto-assign ({unassignedAutoPay.length})
-        </button>
-      {/if}
-      {#if totalBillsAssigned > 0}
-        <div class="text-sm text-gray-400">
-          {totalBillsCleared}/{totalBillsAssigned} bills cleared
-        </div>
-      {/if}
-    </div>
+  <div class="flex items-center gap-4">
+    <button class="btn-secondary px-3 py-1.5" on:click={prevMonth} aria-label="Previous month">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+    <h1 class="text-2xl font-bold text-gray-100">{formatMonth(month)}</h1>
+    <button class="btn-secondary px-3 py-1.5" on:click={nextMonth} aria-label="Next month">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
   </div>
 
   {#if $paychecksStore.length === 0}
@@ -155,95 +121,72 @@
       title="No income configured"
       description="Set up your income sources in Accounts to use the Monthly Planner."
     />
-  {:else if payPeriods.length === 0}
-    <div class="text-center py-16 text-gray-500">
-      <p>No pay days found in {formatMonth(month)}.</p>
-      <p class="text-sm mt-1">Check your paycheck anchor dates in Accounts.</p>
-    </div>
   {:else}
-    <!-- Paycheck columns -->
-    <div class="flex gap-4 pb-4">
-      {#each payPeriods as { paycheck, date } (`${paycheck.id}-${date}`)}
-        <div class="flex-1 min-w-0">
-          <PaycheckColumn {paycheck} paycheckDate={date} plannerMonth={month} {monthTransactions} {unassignedBills} />
+    <!-- Monthly Summary -->
+    <div class="card">
+      <h3 class="text-sm font-semibold text-gray-300 mb-4">Monthly Summary</h3>
+      <div class="space-y-2">
+        <div class="flex items-center text-sm">
+          <span class="flex-1 text-gray-400">Total Income</span>
+          <span class="w-32 text-right tabular-nums text-emerald-400">+{formatCurrency(totalIncome)}</span>
         </div>
-      {/each}
+        <div class="flex items-center text-sm">
+          <span class="flex-1 text-gray-400">Total Bills</span>
+          <span class="w-32 text-right tabular-nums text-red-400">-{formatCurrency(totalBills)}</span>
+        </div>
+        <div class="flex items-center text-sm font-semibold border-t border-gray-700 pt-3">
+          <span class="flex-1 text-gray-200">Net</span>
+          <span class="w-32 text-right tabular-nums {netCashFlow >= 0 ? 'text-emerald-400' : 'text-red-400'}">
+            {formatCurrency(netCashFlow)}
+          </span>
+        </div>
+      </div>
     </div>
 
-    <!-- Unassigned bills section -->
-    {#if unassignedBills.length > 0}
-      <div class="card">
-        <h2 class="text-sm font-semibold text-yellow-400 mb-3">
-          Unassigned Bills ({unassignedBills.length})
-        </h2>
-        <div class="space-y-2">
-          {#each unassignedBills as bill (bill.id)}
-            <div class="flex items-center justify-between text-sm py-1">
-              <span class="text-gray-300">{bill.name}</span>
-              <span class="text-gray-500 tabular-nums">${bill.amount.toFixed(2)}</span>
-            </div>
+    <!-- Income section -->
+    <div class="card">
+      <h2 class="text-sm font-semibold text-gray-300 mb-3">Income</h2>
+      {#if payPeriods.length === 0}
+        <p class="text-sm text-gray-500">No pay days found in {formatMonth(month)}.</p>
+      {:else}
+        <div class="divide-y divide-gray-700/50">
+          {#each payPeriods as { paycheck, date } (`${paycheck.id}-${date}`)}
+            <IncomeRow {paycheck} paycheckDate={date} {monthTransactions} />
           {/each}
         </div>
-        <p class="text-xs text-gray-500 mt-3">
-          These bills have no due day set. Assign them using the "+ Bill" button in each paycheck column.
-        </p>
-      </div>
-    {/if}
-
-    <!-- Spending breakdown + Monthly Summary -->
-    <div class="flex gap-4 items-start flex-wrap">
-      <div class="card max-w-xs">
-        <h3 class="text-sm font-semibold text-gray-300 mb-4">Spending Breakdown</h3>
-        <SpendingChart data={chartData} />
-      </div>
-
-      <div class="card flex-1 min-w-64">
-        <h3 class="text-sm font-semibold text-gray-300 mb-4">Monthly Summary</h3>
-
-        <div class="space-y-4">
-          <!-- Budget vs Actual -->
-          <div>
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Budget vs Actual</p>
-            <div class="space-y-2">
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-400">Budgeted</span>
-                <span class="tabular-nums text-gray-200">{formatCurrency(totalBudgeted)}</span>
-              </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-400">Spent</span>
-                <span class="tabular-nums text-gray-200">{formatCurrency(totalSpent)}</span>
-              </div>
-              <div class="flex items-center justify-between text-sm font-medium border-t border-gray-700 pt-2">
-                <span class="text-gray-300">Remaining</span>
-                <span class="tabular-nums {remainingBudget >= 0 ? 'text-emerald-400' : 'text-red-400'}">
-                  {formatCurrency(remainingBudget)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Cash Flow -->
-          <div>
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Expected Cash Flow</p>
-            <div class="space-y-2">
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-400">Income</span>
-                <span class="tabular-nums text-emerald-400">{formatCurrency(expectedIncome)}</span>
-              </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-400">Bills</span>
-                <span class="tabular-nums text-red-400">{formatCurrency(expectedExpenses)}</span>
-              </div>
-              <div class="flex items-center justify-between text-sm font-medium border-t border-gray-700 pt-2">
-                <span class="text-gray-300">Net</span>
-                <span class="tabular-nums {netCashFlow >= 0 ? 'text-emerald-400' : 'text-red-400'}">
-                  {formatCurrency(netCashFlow)}
-                </span>
-              </div>
-            </div>
-          </div>
+        <div class="flex items-center text-sm font-medium border-t border-gray-700 pt-3 mt-3">
+          <span class="flex-1 text-gray-300">Total Income</span>
+          <span class="w-32 text-right tabular-nums text-emerald-400">+{formatCurrency(totalIncome)}</span>
         </div>
-      </div>
+      {/if}
+    </div>
+
+    <!-- Bills section -->
+    <div class="card">
+      <h2 class="text-sm font-semibold text-gray-300 mb-3">Bills</h2>
+      {#if monthlyBills.length === 0}
+        <p class="text-sm text-gray-500">No monthly bills configured.</p>
+      {:else}
+        <div class="space-y-0.5">
+          {#each monthlyBills as bill (bill.id)}
+            <BillRow
+              {bill}
+              assignment={monthAssignments.find(a => a.billId === bill.id) ?? null}
+              plannerMonth={month}
+            />
+          {/each}
+        </div>
+        <div class="flex items-center text-sm font-medium border-t border-gray-700 pt-3 mt-3">
+          <span class="flex-1 text-gray-300">Total Bills</span>
+          <span class="w-32 text-right tabular-nums text-red-400">-{formatCurrency(totalBills)}</span>
+        </div>
+      {/if}
+    </div>
+
+    <!-- Spending Breakdown -->
+    <div class="card max-w-[50%]">
+      <h3 class="text-sm font-semibold text-gray-300 mb-4">Spending Breakdown</h3>
+      <SpendingChart data={chartData} horizontal />
     </div>
   {/if}
 </div>
