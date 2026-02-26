@@ -11,6 +11,14 @@
   import type { Bill, BudgetCategory } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
   import { get } from "svelte/store"
+  import { page } from "$app/stores"
+  import { onMount } from "svelte"
+
+  let filterQuery = ""
+
+  onMount(() => {
+    filterQuery = $page.url.searchParams.get("q") ?? ""
+  })
 
   let modalOpen = false
   let editBill: Bill | null = null
@@ -91,6 +99,10 @@
         ["monthly", "biweekly", "weekly", "bimonthly", "quarterly", "annually"].indexOf(b.frequency) ||
       a.name.localeCompare(b.name),
   )
+
+  $: visibleBills = filterQuery
+    ? sortedBills.filter(b => b.name.toLowerCase().includes(filterQuery.toLowerCase()))
+    : sortedBills
 </script>
 
 <div class="max-w-4xl mx-auto space-y-6">
@@ -127,17 +139,55 @@
       on:action={openAdd}
     />
   {:else}
-    <div class="space-y-3">
-      {#each sortedBills as bill (bill.id)}
-        <BillCard
-          {bill}
-          accountName={getAccountName(bill.accountId)}
-          categoryName={getCategoryName(bill.categoryId)}
-          on:edit={openEdit}
-          on:delete={handleDelete}
+    <!-- Filter -->
+    <div class="relative">
+      <svg
+        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
         />
-      {/each}
+      </svg>
+      <input
+        bind:value={filterQuery}
+        type="text"
+        placeholder="Filter bills…"
+        class="w-full pl-9 pr-9 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      />
+      {#if filterQuery}
+        <button
+          on:click={() => (filterQuery = "")}
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+          aria-label="Clear filter"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      {/if}
     </div>
+
+    {#if visibleBills.length === 0}
+      <p class="text-sm text-gray-500 text-center py-8">No bills match "{filterQuery}"</p>
+    {:else}
+      <div class="space-y-3">
+        {#each visibleBills as bill (bill.id)}
+          <BillCard
+            {bill}
+            accountName={getAccountName(bill.accountId)}
+            categoryName={getCategoryName(bill.categoryId)}
+            on:edit={openEdit}
+            on:delete={handleDelete}
+          />
+        {/each}
+      </div>
+    {/if}
   {/if}
 </div>
 

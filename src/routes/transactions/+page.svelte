@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores"
+  import { onMount } from "svelte"
   import EmptyState from "$lib/components/shared/EmptyState.svelte"
   import HoldToDelete from "$lib/components/shared/HoldToDelete.svelte"
   import Modal from "$lib/components/shared/Modal.svelte"
@@ -206,6 +207,10 @@
 
   let searchQuery = ""
 
+  onMount(() => {
+    searchQuery = $page.url.searchParams.get("q") ?? ""
+  })
+
   $: searchFiltered = (() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return activeTransactions
@@ -222,23 +227,6 @@
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-100">Transactions</h1>
     <div class="flex gap-2">
-      <a href="/transactions?uncategorized=true" class="btn-secondary">Uncategorized</a>
-      <button
-        on:click={toggleSelectionMode}
-        class="btn-secondary {selectionMode ? 'border-indigo-500 text-indigo-300' : ''}"
-        title="Toggle selection mode"
-      >
-        <svg
-          class="w-4 h-4 inline-block mr-1 -mt-0.5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        Select
-      </button>
       {#if selectedAccount && !isCategoryFilter}
         <button class="btn-secondary" on:click={() => (importOpen = true)}>
           <svg
@@ -315,33 +303,36 @@
     {/if}
 
     <!-- Search -->
-    <div class="relative">
-      <svg
-        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
-      </svg>
-      <input
-        type="text"
-        bind:value={searchQuery}
-        placeholder="Search transactions…"
-        class="w-full pl-9 pr-9 py-2 text-sm bg-gray-800 border border-gray-700 text-gray-200 rounded-lg placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-      />
-      {#if searchQuery}
-        <button
-          on:click={() => (searchQuery = "")}
-          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-          aria-label="Clear search"
+    <div class="flex items-center gap-2">
+      <div class="relative flex-1">
+        <svg
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
         >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      {/if}
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
+        </svg>
+        <input
+          type="text"
+          bind:value={searchQuery}
+          placeholder="Search transactions…"
+          class="w-full pl-9 pr-9 py-2 text-sm bg-gray-800 border border-gray-700 text-gray-200 rounded-lg placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+        />
+        {#if searchQuery}
+          <button
+            on:click={() => (searchQuery = "")}
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+            aria-label="Clear search"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        {/if}
+      </div>
+      <a href="/transactions?uncategorized=true" class="btn-secondary flex-shrink-0">Uncategorized</a>
     </div>
 
     <!-- Transaction list -->
@@ -361,13 +352,39 @@
         {/if}
       </div>
     {:else}
-      <!-- Batch action bar -->
-      <div class="flex items-center justify-between min-h-[2rem]">
+      <!-- Controls bar -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button
+          on:click={toggleSelectionMode}
+          class="btn-secondary {selectionMode ? 'border-indigo-500 text-indigo-300' : ''}"
+          title="Toggle selection mode"
+        >
+          <svg
+            class="w-4 h-4 inline-block mr-1 -mt-0.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Select
+        </button>
+        <select
+          bind:value={pageSize}
+          on:change={() => (currentPage = 1)}
+          class="text-sm bg-gray-800 border border-gray-700 text-gray-300 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+        >
+          <option value={20}>20 / page</option>
+          <option value={100}>100 / page</option>
+          <option value={500}>500 / page</option>
+        </select>
         <span class="text-sm text-gray-400">
           {searchFiltered.length} transaction{searchFiltered.length === 1 ? "" : "s"}
           {#if searchQuery.trim()}(filtered){/if}
           · Page {currentPage} of {totalPages}
         </span>
+        <div class="flex-1"></div>
         {#if selectedIds.size > 0}
           <HoldToDelete
             class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-400 bg-red-950/30 border border-red-800/50 rounded hover:bg-red-900/40 transition-colors"
@@ -383,6 +400,45 @@
             </svg>
             Delete {selectedIds.size} selected
           </HoldToDelete>
+        {/if}
+        {#if totalPages > 1}
+          <div class="flex items-center gap-1">
+            <button
+              on:click={() => (currentPage = 1)}
+              disabled={currentPage === 1}
+              class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="First page"
+            >«</button>
+            <button
+              on:click={() => (currentPage -= 1)}
+              disabled={currentPage === 1}
+              class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Previous page"
+            >‹</button>
+            {#each Array.from({ length: totalPages }, (_, i) => i + 1) as page}
+              {#if totalPages <= 7 || page === 1 || page === totalPages || Math.abs(page - currentPage) <= 2}
+                <button
+                  on:click={() => (currentPage = page)}
+                  class="w-8 h-8 text-sm rounded transition-colors
+                  {currentPage === page ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}"
+                >{page}</button>
+              {:else if Math.abs(page - currentPage) === 3}
+                <span class="text-gray-600 px-1">…</span>
+              {/if}
+            {/each}
+            <button
+              on:click={() => (currentPage += 1)}
+              disabled={currentPage === totalPages}
+              class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Next page"
+            >›</button>
+            <button
+              on:click={() => (currentPage = totalPages)}
+              disabled={currentPage === totalPages}
+              class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Last page"
+            >»</button>
+          </div>
         {/if}
       </div>
 
@@ -406,7 +462,6 @@
             {@const catLabel = getCategoryLabel(tx.categoryId, tx.subcategoryId)}
             {@const isSelected = selectedIds.has(tx.id)}
             {@const isExpanded = expandedId === tx.id}
-            {@const expandedCat = budgetCategories.find(c => c.id === tx.categoryId)}
             <div
               class="transition-colors {isSelected ? 'bg-indigo-950/20' : ''} {isExpanded
                 ? 'ring-1 ring-inset ring-indigo-500/40'
@@ -504,6 +559,7 @@
 
               <!-- Expanded detail panel -->
               {#if isExpanded}
+                {@const expandedCat = budgetCategories.find(c => c.id === tx.categoryId)}
                 <div class="px-4 pb-4 pt-2 bg-gray-700/25 border-t border-indigo-500/30 space-y-4">
                   <!-- Details grid -->
                   <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-2 text-sm">
@@ -610,17 +666,8 @@
       </div>
 
       <!-- Pagination controls -->
-      {#if totalPages > 1 || activeTransactions.length > 20}
-        <div class="flex items-center justify-between gap-4">
-          <select
-            bind:value={pageSize}
-            on:change={() => (currentPage = 1)}
-            class="text-sm bg-gray-800 border border-gray-700 text-gray-300 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
-          >
-            <option value={20}>20 / page</option>
-            <option value={100}>100 / page</option>
-            <option value={500}>500 / page</option>
-          </select>
+      {#if totalPages > 1}
+        <div class="flex justify-end">
           <div class="flex items-center gap-2">
             <button
               on:click={() => (currentPage = 1)}

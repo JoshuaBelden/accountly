@@ -22,7 +22,9 @@
       "Bash(git add src/lib/components/accounts/AccountForm.svelte src/lib/components/planner/PaycheckColumn.svelte src/lib/types/paycheck.ts src/routes/accounts/+page.svelte src/routes/planner/+page.svelte)",
       "Bash(npx prettier --write src/lib/components/planner/BillRow.svelte src/lib/components/planner/PaycheckColumn.svelte src/routes/planner/+page.svelte)",
       "Bash(npx prettier --write src/lib/types/planner.ts src/lib/stores/planner.store.ts src/lib/components/planner/IncomeRow.svelte src/lib/components/planner/BillRow.svelte src/routes/planner/+page.svelte)",
-      "Bash(npx prettier --write --plugin prettier-plugin-svelte src/lib/components/planner/IncomeRow.svelte src/lib/components/planner/BillRow.svelte src/routes/planner/+page.svelte)"
+      "Bash(npx prettier --write --plugin prettier-plugin-svelte src/lib/components/planner/IncomeRow.svelte src/lib/components/planner/BillRow.svelte src/routes/planner/+page.svelte)",
+      "Bash(npx prettier --write src/lib/stores/search.store.ts src/lib/components/layout/GlobalSearch.svelte src/lib/components/layout/TopNav.svelte src/routes/+layout.svelte)",
+      "Bash(npx prettier --write src/lib/stores/search.store.ts)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components"

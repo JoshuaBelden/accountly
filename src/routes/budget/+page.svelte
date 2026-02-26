@@ -10,8 +10,25 @@
   import { formatCurrency } from "$lib/utils/currency"
   import { addMonths, currentMonth, formatMonth } from "$lib/utils/date"
   import { get } from "svelte/store"
+  import { page } from "$app/stores"
+  import { onMount } from "svelte"
 
   let month = currentMonth()
+  let filterQuery = ""
+
+  onMount(() => {
+    filterQuery = $page.url.searchParams.get("q") ?? ""
+  })
+
+  $: visibleCategories = filterQuery
+    ? categories
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .filter(cat => {
+          const term = filterQuery.toLowerCase()
+          return cat.name.toLowerCase().includes(term) || cat.subcategories.some(s => s.name.toLowerCase().includes(term))
+        })
+    : categories.slice().sort((a, b) => a.name.localeCompare(b.name))
   let modalOpen = false
   let editCategory: BudgetCategory | null = null
 
@@ -178,12 +195,50 @@
       </div>
     </div>
 
+    <!-- Filter -->
+    <div class="relative">
+      <svg
+        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
+        />
+      </svg>
+      <input
+        bind:value={filterQuery}
+        type="text"
+        placeholder="Filter categories…"
+        class="w-full pl-9 pr-9 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      />
+      {#if filterQuery}
+        <button
+          on:click={() => (filterQuery = "")}
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+          aria-label="Clear filter"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      {/if}
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Category list -->
       <div class="lg:col-span-2 space-y-3">
-        {#each categories.slice().sort((a, b) => a.name.localeCompare(b.name)) as cat (cat.id)}
-          <CategoryGroup category={cat} {monthTransactions} {month} on:edit={openEdit} on:delete={handleDelete} />
-        {/each}
+        {#if visibleCategories.length === 0}
+          <p class="text-sm text-gray-500 text-center py-8">No categories match "{filterQuery}"</p>
+        {:else}
+          {#each visibleCategories as cat (cat.id)}
+            <CategoryGroup category={cat} {monthTransactions} {month} on:edit={openEdit} on:delete={handleDelete} />
+          {/each}
+        {/if}
       </div>
 
       <!-- Chart -->

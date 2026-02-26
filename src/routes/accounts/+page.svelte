@@ -23,6 +23,26 @@
   import { formatCurrency } from "$lib/utils/currency"
   import { findMatchingPayDate } from "$lib/utils/date"
   import { get } from "svelte/store"
+  import { page } from "$app/stores"
+  import { onMount } from "svelte"
+
+  let filterQuery = ""
+
+  onMount(() => {
+    filterQuery = $page.url.searchParams.get("q") ?? ""
+  })
+
+  $: term = filterQuery.toLowerCase()
+  $: visibleChecking = filterQuery
+    ? $checkingAccounts.filter(a => a.name.toLowerCase().includes(term))
+    : $checkingAccounts
+  $: visibleSavings = filterQuery ? $savingsAccounts.filter(a => a.name.toLowerCase().includes(term)) : $savingsAccounts
+  $: visibleLoans = filterQuery ? $loanAccounts.filter(a => a.name.toLowerCase().includes(term)) : $loanAccounts
+  $: visibleAssets = filterQuery ? $assetAccounts.filter(a => a.name.toLowerCase().includes(term)) : $assetAccounts
+  $: visibleInvestments = filterQuery
+    ? $investmentAccounts.filter(a => a.name.toLowerCase().includes(term))
+    : $investmentAccounts
+  $: visiblePaychecks = filterQuery ? $paychecksStore.filter(pc => pc.name.toLowerCase().includes(term)) : $paychecksStore
 
   let modalOpen = false
   let editAccount: Account | null = null
@@ -156,149 +176,194 @@
     </div>
   </div>
 
-  <!-- Checking -->
-  <section>
-    <h2 class="section-title flex items-center gap-2">
-      Checking
-      {#if $checkingAccounts.length > 0}
-        <span class="text-sm font-normal text-gray-400">
-          Total: {formatCurrency($checkingAccounts.reduce((s, a) => s + a.balance, 0))}
-        </span>
-      {/if}
-    </h2>
-    {#if $checkingAccounts.length === 0}
-      <EmptyState
-        title="No checking accounts"
-        description="Add a checking account to track your daily spending."
-        actionLabel="Add Checking"
-        on:action={openAdd}
+  <!-- Filter -->
+  <div class="relative">
+    <svg
+      class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
       />
-    {:else}
-      <div class="space-y-3">
-        {#each $checkingAccounts as account (account.id)}
-          <AccountCard {account} on:edit={openEdit} on:delete={handleDelete} />
-        {/each}
-      </div>
+    </svg>
+    <input
+      bind:value={filterQuery}
+      type="text"
+      placeholder="Filter accounts…"
+      class="w-full pl-9 pr-9 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    />
+    {#if filterQuery}
+      <button
+        on:click={() => (filterQuery = "")}
+        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+        aria-label="Clear filter"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     {/if}
-  </section>
+  </div>
+
+  <!-- Checking -->
+  {#if !filterQuery || visibleChecking.length > 0}
+    <section>
+      <h2 class="section-title flex items-center gap-2">
+        Checking
+        {#if visibleChecking.length > 0}
+          <span class="text-sm font-normal text-gray-400">
+            Total: {formatCurrency(visibleChecking.reduce((s, a) => s + a.balance, 0))}
+          </span>
+        {/if}
+      </h2>
+      {#if $checkingAccounts.length === 0}
+        <EmptyState
+          title="No checking accounts"
+          description="Add a checking account to track your daily spending."
+          actionLabel="Add Checking"
+          on:action={openAdd}
+        />
+      {:else}
+        <div class="space-y-3">
+          {#each visibleChecking as account (account.id)}
+            <AccountCard {account} on:edit={openEdit} on:delete={handleDelete} />
+          {/each}
+        </div>
+      {/if}
+    </section>
+  {/if}
 
   <!-- Savings -->
-  <section>
-    <h2 class="section-title flex items-center gap-2">
-      Savings
-      {#if $savingsAccounts.length > 0}
-        <span class="text-sm font-normal text-gray-400">
-          Total: {formatCurrency($savingsAccounts.reduce((s, a) => s + a.balance, 0))}
-        </span>
+  {#if !filterQuery || visibleSavings.length > 0}
+    <section>
+      <h2 class="section-title flex items-center gap-2">
+        Savings
+        {#if visibleSavings.length > 0}
+          <span class="text-sm font-normal text-gray-400">
+            Total: {formatCurrency(visibleSavings.reduce((s, a) => s + a.balance, 0))}
+          </span>
+        {/if}
+      </h2>
+      {#if $savingsAccounts.length === 0}
+        <EmptyState
+          title="No savings accounts"
+          description="Add a savings account to track your savings goals."
+          actionLabel="Add Savings"
+          on:action={openAdd}
+        />
+      {:else}
+        <div class="space-y-3">
+          {#each visibleSavings as account (account.id)}
+            <AccountCard {account} on:edit={openEdit} on:delete={handleDelete} />
+          {/each}
+        </div>
       {/if}
-    </h2>
-    {#if $savingsAccounts.length === 0}
-      <EmptyState
-        title="No savings accounts"
-        description="Add a savings account to track your savings goals."
-        actionLabel="Add Savings"
-        on:action={openAdd}
-      />
-    {:else}
-      <div class="space-y-3">
-        {#each $savingsAccounts as account (account.id)}
-          <AccountCard {account} on:edit={openEdit} on:delete={handleDelete} />
-        {/each}
-      </div>
-    {/if}
-  </section>
+    </section>
+  {/if}
 
   <!-- Loans -->
-  <section>
-    <h2 class="section-title flex items-center gap-2">
-      Loans
-      {#if $loanAccounts.length > 0}
-        <span class="text-sm font-normal text-gray-400">
-          Total Owed: {formatCurrency($loanAccounts.reduce((s, a) => s + (a as LoanAccount).remainingBalance, 0))}
-        </span>
+  {#if !filterQuery || visibleLoans.length > 0}
+    <section>
+      <h2 class="section-title flex items-center gap-2">
+        Loans
+        {#if visibleLoans.length > 0}
+          <span class="text-sm font-normal text-gray-400">
+            Total Owed: {formatCurrency(visibleLoans.reduce((s, a) => s + (a as LoanAccount).remainingBalance, 0))}
+          </span>
+        {/if}
+      </h2>
+      {#if $loanAccounts.length === 0}
+        <EmptyState
+          title="No loans"
+          description="Add a loan to track payments and see your payoff date."
+          actionLabel="Add Loan"
+          on:action={openAdd}
+        />
+      {:else}
+        <div class="space-y-3">
+          {#each visibleLoans as loan (loan.id)}
+            <LoanCard loan={loan as LoanAccount} on:edit={openEdit} on:delete={handleDelete} />
+          {/each}
+        </div>
       {/if}
-    </h2>
-    {#if $loanAccounts.length === 0}
-      <EmptyState
-        title="No loans"
-        description="Add a loan to track payments and see your payoff date."
-        actionLabel="Add Loan"
-        on:action={openAdd}
-      />
-    {:else}
-      <div class="space-y-3">
-        {#each $loanAccounts as loan (loan.id)}
-          <LoanCard loan={loan as LoanAccount} on:edit={openEdit} on:delete={handleDelete} />
-        {/each}
-      </div>
-    {/if}
-  </section>
+    </section>
+  {/if}
 
   <!-- Assets -->
-  <section>
-    <h2 class="section-title flex items-center gap-2">
-      Assets
-      {#if $assetAccounts.length > 0}
-        <span class="text-sm font-normal text-gray-400">
-          Est. Value: {formatCurrency($assetAccounts.reduce((s, a) => s + (a as AssetAccount).estimatedValue, 0))}
-        </span>
+  {#if !filterQuery || visibleAssets.length > 0}
+    <section>
+      <h2 class="section-title flex items-center gap-2">
+        Assets
+        {#if visibleAssets.length > 0}
+          <span class="text-sm font-normal text-gray-400">
+            Est. Value: {formatCurrency(visibleAssets.reduce((s, a) => s + (a as AssetAccount).estimatedValue, 0))}
+          </span>
+        {/if}
+      </h2>
+      {#if $assetAccounts.length === 0}
+        <EmptyState
+          title="No assets"
+          description="Add mortgages, vehicles, or other assets to your net worth."
+          actionLabel="Add Asset"
+          on:action={openAdd}
+        />
+      {:else}
+        <div class="space-y-3">
+          {#each visibleAssets as asset (asset.id)}
+            <AssetCard asset={asset as AssetAccount} on:edit={openEdit} on:delete={handleDelete} />
+          {/each}
+        </div>
       {/if}
-    </h2>
-    {#if $assetAccounts.length === 0}
-      <EmptyState
-        title="No assets"
-        description="Add mortgages, vehicles, or other assets to your net worth."
-        actionLabel="Add Asset"
-        on:action={openAdd}
-      />
-    {:else}
-      <div class="space-y-3">
-        {#each $assetAccounts as asset (asset.id)}
-          <AssetCard asset={asset as AssetAccount} on:edit={openEdit} on:delete={handleDelete} />
-        {/each}
-      </div>
-    {/if}
-  </section>
+    </section>
+  {/if}
 
   <!-- Investments -->
-  <section>
-    <h2 class="section-title flex items-center gap-2">
-      Investments
-      {#if $investmentAccounts.length > 0}
-        <span class="text-sm font-normal text-gray-400">
-          Total: {formatCurrency($investmentAccounts.reduce((s, a) => s + (a as InvestmentAccount).currentBalance, 0))}
-        </span>
+  {#if !filterQuery || visibleInvestments.length > 0}
+    <section>
+      <h2 class="section-title flex items-center gap-2">
+        Investments
+        {#if visibleInvestments.length > 0}
+          <span class="text-sm font-normal text-gray-400">
+            Total: {formatCurrency(visibleInvestments.reduce((s, a) => s + (a as InvestmentAccount).currentBalance, 0))}
+          </span>
+        {/if}
+      </h2>
+      {#if $investmentAccounts.length === 0}
+        <EmptyState
+          title="No investments"
+          description="Track 401k, IRA, brokerage accounts, and more."
+          actionLabel="Add Investment"
+          on:action={openAdd}
+        />
+      {:else}
+        <div class="space-y-3">
+          {#each visibleInvestments as inv (inv.id)}
+            <InvestmentCard investment={inv as InvestmentAccount} on:edit={openEdit} on:delete={handleDelete} />
+          {/each}
+        </div>
       {/if}
-    </h2>
-    {#if $investmentAccounts.length === 0}
-      <EmptyState
-        title="No investments"
-        description="Track 401k, IRA, brokerage accounts, and more."
-        actionLabel="Add Investment"
-        on:action={openAdd}
-      />
-    {:else}
-      <div class="space-y-3">
-        {#each $investmentAccounts as inv (inv.id)}
-          <InvestmentCard investment={inv as InvestmentAccount} on:edit={openEdit} on:delete={handleDelete} />
-        {/each}
-      </div>
-    {/if}
-  </section>
+    </section>
+  {/if}
 
   <!-- Income -->
-  <section>
-    <h2 class="section-title">Income</h2>
-    {#if $paychecksStore.length === 0}
-      <EmptyState
-        title="No income configured"
-        description="Set up your income sources so the Monthly Planner can organize your bills."
-        actionLabel="Add Income"
-        on:action={openAdd}
-      />
-    {:else}
-      <div class="space-y-3">
-        {#each $paychecksStore as pc (pc.id)}
+  {#if !filterQuery || visiblePaychecks.length > 0}
+    <section>
+      <h2 class="section-title">Income</h2>
+      {#if $paychecksStore.length === 0}
+        <EmptyState
+          title="No income configured"
+          description="Set up your income sources so the Monthly Planner can organize your bills."
+          actionLabel="Add Income"
+          on:action={openAdd}
+        />
+      {:else}
+        <div class="space-y-3">
+          {#each visiblePaychecks as pc (pc.id)}
           <div class="card flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full bg-indigo-900 flex items-center justify-center">
@@ -344,7 +409,8 @@
         {/each}
       </div>
     {/if}
-  </section>
+    </section>
+  {/if}
 </div>
 
 <Modal

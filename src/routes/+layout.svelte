@@ -1,5 +1,6 @@
 <script lang="ts">
   import AccountOverview from "$lib/components/layout/AccountOverview.svelte"
+  import GlobalSearch from "$lib/components/layout/GlobalSearch.svelte"
   import TopNav from "$lib/components/layout/TopNav.svelte"
   import "../app.css"
 </script>
@@ -49,3 +50,5 @@
     <slot />
   </main>
 </div>
+
+<GlobalSearch />
