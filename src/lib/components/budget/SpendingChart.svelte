@@ -44,7 +44,7 @@
 {#if total === 0}
 	<div class="flex items-center justify-center h-40 text-gray-500 text-sm">No spending data</div>
 {:else}
-	<div class="flex items-start gap-6">
+	<div class="flex flex-col items-center gap-4">
 		<svg viewBox="0 0 {width} {height}" class="w-40 h-40 flex-shrink-0">
 			{#each segments as seg}
 				{#if seg.endAngle - seg.startAngle > 0.5}
@@ -59,11 +59,11 @@
 			<text x={cx} y={cy + 10} text-anchor="middle" class="fill-gray-100 font-bold" font-size="14">${(total / 1000).toFixed(1)}k</text>
 		</svg>
 
-		<div class="flex flex-col gap-1.5 pt-2">
+		<div class="w-full flex flex-col gap-1.5">
 			{#each data as d}
 				<div class="flex items-center gap-2 text-xs">
 					<span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background: {d.color}"></span>
-					<span class="text-gray-300 truncate max-w-[120px]">{d.label}</span>
+					<span class="text-gray-300 truncate">{d.label}</span>
 					<span class="text-gray-500 ml-auto tabular-nums">${d.amount.toFixed(0)}</span>
 				</div>
 			{/each}

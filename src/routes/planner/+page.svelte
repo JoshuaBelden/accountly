@@ -6,8 +6,10 @@
 	import { settingsStore } from '$lib/stores/settings.store';
 	import PaycheckColumn from '$lib/components/planner/PaycheckColumn.svelte';
 	import EmptyState from '$lib/components/shared/EmptyState.svelte';
+	import { budgetStore } from '$lib/stores/budget.store';
+	import SpendingChart from '$lib/components/budget/SpendingChart.svelte';
 	import { currentMonth, addMonths, formatMonth, getPayDaysInMonth } from '$lib/utils/date';
-	import type { Bill, Paycheck } from '$lib/types';
+	import type { Bill, BudgetCategory, Paycheck } from '$lib/types';
 
 	let month = currentMonth();
 
@@ -52,6 +54,31 @@
 	$: if (payPeriods.length > 0 && monthAssignments.length === 0 && $billsStore.some((b) => b.frequency === 'monthly')) {
 		autoAssignBillsForMonth();
 	}
+
+	// Budget categories for spending chart
+	let categories: BudgetCategory[] = [];
+	budgetStore.categories.subscribe((c: BudgetCategory[]) => (categories = c));
+
+	$: chartTransactions = $transactionsStore.filter(
+		(t) => t.plannerMonth === month || t.date.startsWith(month)
+	);
+
+	$: chartData = categories.map((cat, i) => {
+		const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
+		const amount = chartTransactions
+			.filter((t) => {
+				if (t.type === 'income') return false;
+				if (t.splits?.length) return t.splits.some((s) => s.categoryId === cat.id);
+				return t.categoryId === cat.id;
+			})
+			.reduce((sum, t) => {
+				if (t.splits?.length) {
+					return sum + t.splits.filter((s) => s.categoryId === cat.id).reduce((ss, s) => ss + s.amount, 0);
+				}
+				return sum + t.amount;
+			}, 0);
+		return { label: cat.name, amount, color: colors[i % colors.length] };
+	}).filter((d) => d.amount > 0);
 
 	// Summary stats
 	$: totalBillsAssigned = monthAssignments.length;
@@ -127,5 +154,11 @@
 				<p class="text-xs text-gray-500 mt-3">These bills have no due day set. Assign them using the "+ Bill" button in each paycheck column.</p>
 			</div>
 		{/if}
+
+		<!-- Spending breakdown -->
+		<div class="card max-w-xs">
+			<h3 class="text-sm font-semibold text-gray-300 mb-4">Spending Breakdown</h3>
+			<SpendingChart data={chartData} />
+		</div>
 	{/if}
 </div>
