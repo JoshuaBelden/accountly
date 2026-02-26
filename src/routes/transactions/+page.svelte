@@ -238,7 +238,7 @@
 
 							<!-- Amount -->
 							<div
-								class="text-sm font-medium tabular-nums flex-shrink-0
+								class="text-sm font-medium tabular-nums flex-shrink-0 w-24 text-right
 									{tx.type === 'income' ? 'text-emerald-400' : 'text-red-400'}"
 							>
 								{tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
