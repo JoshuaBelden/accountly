@@ -2,6 +2,8 @@
   import { page } from "$app/stores"
   import { searchOpen } from "$lib/stores/search.store"
 
+  export let consented = false
+
   const navItems = [
     { href: "/planner", label: "Planner", primary: true },
     { href: "/budget", label: "Budget" },
@@ -16,21 +18,28 @@
 <nav class="flex items-center gap-1">
   {#each navItems as item}
     <a
-      href={item.href}
-      class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {$page.url.pathname === item.href ||
-      $page.url.pathname.startsWith(item.href + '/')
-        ? 'bg-indigo-600 text-white'
-        : item.primary
-          ? 'text-indigo-300 border border-indigo-700 hover:text-white hover:bg-indigo-700'
-          : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'}"
+      href={consented ? item.href : undefined}
+      aria-disabled={!consented}
+      class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
+        {!consented
+        ? 'text-gray-600 cursor-not-allowed'
+        : $page.url.pathname === item.href || $page.url.pathname.startsWith(item.href + '/')
+          ? 'bg-indigo-600 text-white'
+          : item.primary
+            ? 'text-indigo-300 border border-indigo-700 hover:text-white hover:bg-indigo-700'
+            : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'}"
     >
       {item.label}
     </a>
   {/each}
 
   <button
+    disabled={!consented}
     on:click={() => ($searchOpen = true)}
-    class="ml-1 p-2 rounded-lg transition-colors text-gray-400 hover:text-gray-100 hover:bg-gray-800"
+    class="ml-1 p-2 rounded-lg transition-colors
+      {consented
+      ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'
+      : 'text-gray-600 cursor-not-allowed'}"
     aria-label="Search (⌘K)"
   >
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

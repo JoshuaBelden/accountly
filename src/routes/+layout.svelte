@@ -1,8 +1,18 @@
 <script lang="ts">
+  import { browser } from "$app/environment"
+  import { goto } from "$app/navigation"
+  import { page } from "$app/stores"
   import AccountOverview from "$lib/components/layout/AccountOverview.svelte"
   import GlobalSearch from "$lib/components/layout/GlobalSearch.svelte"
   import TopNav from "$lib/components/layout/TopNav.svelte"
+  import { accountsStore } from "$lib/stores/accounts.store"
+  import { consentStore } from "$lib/stores/consent.store"
   import "../app.css"
+
+  $: onSettings = $page.url.pathname === "/settings"
+  $: if (browser && !onSettings && (!$consentStore || $accountsStore.length === 0)) {
+    goto("/settings")
+  }
 </script>
 
 <div class="min-h-screen flex flex-col bg-gray-950 text-gray-100">
@@ -36,7 +46,7 @@
 
       <!-- Centered navigation -->
       <div class="w-full flex justify-center">
-        <TopNav />
+        <TopNav consented={$consentStore} />
       </div>
 
       <!-- Top-right: financial overview -->

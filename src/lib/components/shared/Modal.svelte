@@ -48,7 +48,7 @@
 
       <!-- Footer -->
       {#if $$slots.footer}
-        <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-700 flex-shrink-0">
+        <div class="flex flex-nowrap items-center justify-end gap-3 px-6 py-4 border-t border-gray-700 flex-shrink-0">
           <slot name="footer" />
         </div>
       {/if}

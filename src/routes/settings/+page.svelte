@@ -1,9 +1,11 @@
 <script lang="ts">
   import ConfirmDialog from "$lib/components/shared/ConfirmDialog.svelte"
+  import HoldButton from "$lib/components/shared/HoldButton.svelte"
   import { clearAllStorage, exportAllData } from "$lib/persistence/localStorage"
   import { accountsStore } from "$lib/stores/accounts.store"
   import { billsStore } from "$lib/stores/bills.store"
   import { budgetStore } from "$lib/stores/budget.store"
+  import { consentStore } from "$lib/stores/consent.store"
   import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { settingsStore } from "$lib/stores/settings.store"
@@ -11,10 +13,12 @@
   import { transactionsStore } from "$lib/stores/transactions.store"
   import type { BudgetCategory, MonthlyBudgetOverride } from "$lib/types"
   import { exportToFile, importFromFile } from "$lib/utils/export"
+  import { importDefaultData } from "$lib/utils/defaultData"
 
   let clearConfirmOpen = false
   let importError = ""
   let importSuccess = false
+  let defaultDataSuccess = false
   let fileInput: HTMLInputElement
 
   let categories: BudgetCategory[] = []
@@ -62,6 +66,11 @@
     input.value = ""
   }
 
+  function handleImportDefaultData() {
+    importDefaultData()
+    defaultDataSuccess = true
+  }
+
   function confirmClearAll() {
     clearAllStorage()
     accountsStore.set([])
@@ -73,7 +82,6 @@
     plannerStore.set([])
     merchantsStore.set([])
     settingsStore.reset()
-    clearConfirmOpen = false
   }
 
   $: plannerStartDay = $settingsStore.planner.startDayOfMonth
@@ -88,6 +96,98 @@
 
 <div class="max-w-2xl mx-auto space-y-8">
   <h1 class="text-2xl font-bold text-gray-100">Settings</h1>
+
+  <!-- About -->
+  <section class="card space-y-4">
+    <h2 class="text-lg font-semibold text-gray-100">About Accountly</h2>
+    <p class="text-sm text-gray-300">
+      Accountly is a personal finance manager that runs entirely in your browser — no server, no cloud sync, and no
+      account required.
+    </p>
+
+    <div class="space-y-3">
+      <h3 class="text-sm font-semibold text-gray-200">How your data is stored</h3>
+      <p class="text-sm text-gray-400">
+        All your data — accounts, transactions, bills, budget categories, and settings — is saved in your browser's
+        <span class="text-gray-200 font-medium">localStorage</span>. This is private, device-local storage built into
+        your browser.
+      </p>
+      <ul class="space-y-2 text-sm text-gray-400">
+        <li class="flex gap-2">
+          <span class="text-amber-400 flex-shrink-0 mt-0.5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+              />
+            </svg>
+          </span>
+          <span
+            >Your data exists <span class="text-gray-200">only in this browser on this device</span>. It is not synced
+            to other browsers, devices, or accounts.</span
+          >
+        </li>
+        <li class="flex gap-2">
+          <span class="text-amber-400 flex-shrink-0 mt-0.5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+              />
+            </svg>
+          </span>
+          <span
+            >Clearing browser site data, using <span class="text-gray-200">private/incognito mode</span>, or
+            uninstalling the browser will <span class="text-gray-200">permanently erase</span> your data.</span
+          >
+        </li>
+        <li class="flex gap-2">
+          <span class="text-amber-400 flex-shrink-0 mt-0.5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+              />
+            </svg>
+          </span>
+          <span
+            >There is <span class="text-gray-200">no recovery option</span>. If your data is lost, there is no server
+            to restore it from. Export your data regularly using the Export Data button below.</span
+          >
+        </li>
+      </ul>
+    </div>
+
+    {#if $consentStore}
+      <div class="flex items-center gap-2 pt-1">
+        <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+        </svg>
+        <span class="text-sm text-emerald-400">Acknowledged</span>
+      </div>
+    {:else}
+      <label class="flex items-start gap-3 cursor-pointer group pt-1">
+        <input
+          type="checkbox"
+          class="mt-0.5 w-4 h-4 rounded border-gray-600 bg-gray-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-gray-900 cursor-pointer"
+          checked={false}
+          on:change={e => {
+            if ((e.target as HTMLInputElement).checked) consentStore.accept()
+          }}
+        />
+        <span class="text-sm text-gray-300 group-hover:text-gray-100 transition-colors">
+          I understand that my data is stored locally in this browser only, and I am responsible for backing it up
+          regularly.
+        </span>
+      </label>
+    {/if}
+  </section>
 
   <!-- Planner -->
   <section class="card space-y-4">
@@ -164,6 +264,12 @@
       </div>
     {/if}
 
+    {#if defaultDataSuccess}
+      <div class="bg-emerald-900/30 border border-emerald-700 rounded-lg p-3 text-sm text-emerald-300">
+        Default data loaded! Explore the app to see your accounts, bills, budget, and transactions.
+      </div>
+    {/if}
+
     {#if importError}
       <div class="bg-red-900/30 border border-red-700 rounded-lg p-3 text-sm text-red-300">
         {importError}
@@ -171,6 +277,18 @@
     {/if}
 
     <div class="flex flex-wrap gap-3">
+      <button class="btn-secondary" on:click={handleImportDefaultData}>
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
+        Import Default Data
+      </button>
+
       <button class="btn-primary" on:click={handleExport}>
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
@@ -196,7 +314,7 @@
         Import Data
       </button>
 
-      <button class="btn-danger" on:click={() => (clearConfirmOpen = true)}>
+      <HoldButton danger on:confirm={() => (clearConfirmOpen = true)}>
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             stroke-linecap="round"
@@ -206,17 +324,8 @@
           />
         </svg>
         Clear All Data
-      </button>
+      </HoldButton>
     </div>
-  </section>
-
-  <!-- About -->
-  <section class="card">
-    <h2 class="text-lg font-semibold text-gray-100 mb-2">About</h2>
-    <p class="text-sm text-gray-400">
-      Accountly is a personal finance manager. All data is stored in your browser's local storage — no data is sent
-      anywhere.
-    </p>
   </section>
 </div>
 
@@ -226,6 +335,8 @@
   message="This will permanently delete ALL your accounts, bills, transactions, and settings. This cannot be undone. Export your data first if you want a backup."
   confirmLabel="Delete Everything"
   danger
+  showExport
+  on:export={handleExport}
   on:confirm={confirmClearAll}
   on:cancel={() => (clearConfirmOpen = false)}
 />

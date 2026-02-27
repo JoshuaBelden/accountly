@@ -35,7 +35,10 @@
       "Bash(git branch --set-upstream-to=origin/main main)",
       "Bash(git push origin --delete offline-app)",
       "Bash(git remote prune origin)",
-      "Bash(npx prettier --write src/lib/components/transactions/TransactionSplitEditor.svelte src/routes/transactions/+page.svelte)"
+      "Bash(npx prettier --write src/lib/components/transactions/TransactionSplitEditor.svelte src/routes/transactions/+page.svelte)",
+      "Bash(npx prettier --write src/lib/utils/defaultData.ts src/routes/settings/+page.svelte)",
+      "Bash(npx prettier --write src/routes/settings/+page.svelte --plugin @prettier/plugin-svelte)",
+      "Bash(npx prettier --write src/routes/settings/+page.svelte)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components"
