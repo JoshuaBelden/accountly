@@ -29,7 +29,12 @@
       "Bash(npx prettier --write src/lib/utils/export.ts)",
       "Bash(npx prettier --write src/routes/budget/+page.svelte)",
       "Bash(npx --prefix /Users/joshuabelden/Code/accountly prettier --write /Users/joshuabelden/Code/accountly/src/routes/budget/+page.svelte)",
-      "Bash(npx tsc --noEmit)"
+      "Bash(npx tsc --noEmit)",
+      "Bash(git remote add origin git@github.com:JoshuaBelden/accountly.git)",
+      "Bash(git push --force origin main)",
+      "Bash(git branch --set-upstream-to=origin/main main)",
+      "Bash(git push origin --delete offline-app)",
+      "Bash(git remote prune origin)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components"
