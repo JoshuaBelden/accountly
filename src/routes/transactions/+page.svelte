@@ -1,20 +1,21 @@
 <script lang="ts">
   import { page } from "$app/stores"
-  import { onMount } from "svelte"
   import EmptyState from "$lib/components/shared/EmptyState.svelte"
   import HoldToDelete from "$lib/components/shared/HoldToDelete.svelte"
   import Modal from "$lib/components/shared/Modal.svelte"
   import ImportTransactionsModal from "$lib/components/transactions/ImportTransactionsModal.svelte"
   import TransactionForm from "$lib/components/transactions/TransactionForm.svelte"
+  import TransactionSplitEditor from "$lib/components/transactions/TransactionSplitEditor.svelte"
   import { checkingAccounts, savingsAccounts } from "$lib/stores/accounts.store"
   import { billsStore } from "$lib/stores/bills.store"
   import { budgetStore } from "$lib/stores/budget.store"
   import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
-  import type { BudgetCategory } from "$lib/types"
+  import type { BudgetCategory, Transaction } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
   import { formatDateShort } from "$lib/utils/date"
+  import { onMount } from "svelte"
 
   let pageSize = 20
 
@@ -153,6 +154,19 @@
       return sub ? `${cat.name} › ${sub.name}` : cat.name
     }
     return cat.name
+  }
+
+  function initSplit(transaction: Transaction) {
+    const half = Math.round((transaction.amount / 2) * 100) / 100
+    const other = Math.round((transaction.amount - half) * 100) / 100
+    transactionsStore.update(transaction.id, {
+      splits: [
+        { categoryId: transaction.categoryId ?? "", subcategoryId: transaction.subcategoryId, amount: half },
+        { categoryId: "", subcategoryId: undefined, amount: other },
+      ],
+      categoryId: undefined,
+      subcategoryId: undefined,
+    })
   }
 
   function linkBill(txId: string, txDate: string, billId: string | undefined) {
@@ -414,21 +428,23 @@
               on:click={() => (currentPage = 1)}
               disabled={currentPage === 1}
               class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="First page"
-            >«</button>
+              aria-label="First page">«</button
+            >
             <button
               on:click={() => (currentPage -= 1)}
               disabled={currentPage === 1}
               class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Previous page"
-            >‹</button>
+              aria-label="Previous page">‹</button
+            >
             {#each Array.from({ length: totalPages }, (_, i) => i + 1) as page}
               {#if totalPages <= 7 || page === 1 || page === totalPages || Math.abs(page - currentPage) <= 2}
                 <button
                   on:click={() => (currentPage = page)}
                   class="w-8 h-8 text-sm rounded transition-colors
-                  {currentPage === page ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}"
-                >{page}</button>
+                  {currentPage === page
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}">{page}</button
+                >
               {:else if Math.abs(page - currentPage) === 3}
                 <span class="text-gray-600 px-1">…</span>
               {/if}
@@ -437,14 +453,14 @@
               on:click={() => (currentPage += 1)}
               disabled={currentPage === totalPages}
               class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Next page"
-            >›</button>
+              aria-label="Next page">›</button
+            >
             <button
               on:click={() => (currentPage = totalPages)}
               disabled={currentPage === totalPages}
               class="px-2 py-1 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Last page"
-            >»</button>
+              aria-label="Last page">»</button
+            >
           </div>
         {/if}
       </div>
@@ -466,7 +482,9 @@
 
         <div class="divide-y divide-gray-700/50">
           {#each pagedTransactions as tx (tx.id)}
-            {@const catLabel = getCategoryLabel(tx.categoryId, tx.subcategoryId)}
+            {@const catLabel = tx.splits?.length
+              ? `Split (${tx.splits.length})`
+              : getCategoryLabel(tx.categoryId, tx.subcategoryId)}
             {@const isSelected = selectedIds.has(tx.id)}
             {@const isExpanded = expandedId === tx.id}
             <div
@@ -546,27 +564,11 @@
                 >
                   <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
-
-                <!-- Remove -->
-                <button
-                  on:click|stopPropagation={() => transactionsStore.remove(tx.id)}
-                  class="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-red-400 transition-all flex-shrink-0"
-                  aria-label="Remove transaction"
-                >
-                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
               </div>
 
               <!-- Expanded detail panel -->
               {#if isExpanded}
-                {@const expandedCat = budgetCategories.find(c => c.id === tx.categoryId)}
+                {@const expandedCat = tx.splits?.length ? null : budgetCategories.find(c => c.id === tx.categoryId)}
                 <div class="px-4 pb-4 pt-2 bg-gray-700/25 border-t border-indigo-500/30 space-y-4">
                   <!-- Details grid -->
                   <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-2 text-sm">
@@ -577,12 +579,6 @@
                     <div class="flex gap-2">
                       <span class="text-gray-500">Type</span>
                       <span class="text-gray-200">{typeLabels[tx.type] ?? tx.type}</span>
-                    </div>
-                    <div class="flex gap-2">
-                      <span class="text-gray-500">Amount</span>
-                      <span class="{tx.type === 'income' ? 'text-emerald-400' : 'text-red-400'} tabular-nums">
-                        {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount)}
-                      </span>
                     </div>
                     {#if tx.plannerMonth}
                       <div class="flex gap-2">
@@ -608,68 +604,116 @@
                     {/if}
                   </div>
 
-                  <!-- Income source assignment -->
-                  <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-700/40">
-                    <span class="text-xs text-gray-500 uppercase tracking-wide">Income</span>
-                    <select
-                      value={tx.paycheckId ?? ""}
-                      on:change={e => linkPaycheck(tx.id, e.currentTarget.value || undefined)}
-                      class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
-                    >
-                      <option value="">— None —</option>
-                      {#each sortedPaychecks as paycheck}
-                        <option value={paycheck.id}>{paycheck.name}</option>
-                      {/each}
-                    </select>
-                  </div>
+                  <!-- Category / Income / Bill rows -->
+                  <div class="space-y-2 pt-1 border-t border-gray-700/40">
+                    <!-- Budget category -->
+                    <div class="flex items-start gap-3">
+                      <span class="w-28 flex-shrink-0 text-xs text-gray-500 uppercase tracking-wide pt-1.5">Budget</span
+                      >
+                      {#if tx.splits?.length}
+                        <div class="flex-1">
+                          <TransactionSplitEditor
+                            transaction={tx}
+                            categories={sortedBudgetCategories}
+                            on:save={e =>
+                              transactionsStore.update(tx.id, {
+                                splits: e.detail,
+                                categoryId: undefined,
+                                subcategoryId: undefined,
+                              })}
+                            on:exitSplit={e =>
+                              transactionsStore.update(tx.id, {
+                                splits: [],
+                                categoryId: e.detail.categoryId,
+                                subcategoryId: e.detail.subcategoryId,
+                              })}
+                          />
+                        </div>
+                      {:else}
+                        <div class="flex flex-wrap items-center gap-2">
+                          <select
+                            value={tx.categoryId ?? ""}
+                            on:change={e => {
+                              const catId = e.currentTarget.value || undefined
+                              transactionsStore.update(tx.id, { categoryId: catId, subcategoryId: undefined })
+                            }}
+                            class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+                          >
+                            <option value="">— Unassigned —</option>
+                            {#each sortedBudgetCategories as cat}
+                              <option value={cat.id}>{cat.name}</option>
+                            {/each}
+                          </select>
 
-                  <!-- Bill assignment -->
-                  <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-700/40">
-                    <span class="text-xs text-gray-500 uppercase tracking-wide">Bill</span>
-                    <select
-                      value={tx.billId ?? ""}
-                      on:change={e => linkBill(tx.id, tx.date, e.currentTarget.value || undefined)}
-                      class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
-                    >
-                      <option value="">— None —</option>
-                      {#each sortedBills as bill}
-                        <option value={bill.id}>{bill.name}</option>
-                      {/each}
-                    </select>
-                  </div>
+                          {#if expandedCat && expandedCat.subcategories.length > 0}
+                            <select
+                              value={tx.subcategoryId ?? ""}
+                              on:change={e => {
+                                const subId = e.currentTarget.value || undefined
+                                transactionsStore.update(tx.id, { subcategoryId: subId })
+                              }}
+                              class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+                            >
+                              <option value="">— No subcategory —</option>
+                              {#each [...expandedCat.subcategories].sort((a, b) => a.name.localeCompare(b.name)) as sub}
+                                <option value={sub.id}>{sub.name}</option>
+                              {/each}
+                            </select>
+                          {/if}
 
-                  <!-- Category assignment -->
-                  <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-700/40">
-                    <span class="text-xs text-gray-500 uppercase tracking-wide">Budget Category</span>
-                    <select
-                      value={tx.categoryId ?? ""}
-                      on:change={e => {
-                        const catId = e.currentTarget.value || undefined
-                        transactionsStore.update(tx.id, { categoryId: catId, subcategoryId: undefined })
-                      }}
-                      class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
-                    >
-                      <option value="">— Unassigned —</option>
-                      {#each sortedBudgetCategories as cat}
-                        <option value={cat.id}>{cat.name}</option>
-                      {/each}
-                    </select>
+                          {#if tx.type !== "income"}
+                            <button
+                              on:click={() => initSplit(tx)}
+                              class="text-xs px-2 py-1 rounded border border-gray-600 text-gray-400 hover:text-indigo-300 hover:border-indigo-600 transition-colors"
+                              title="Split this transaction across multiple budget categories"
+                            >
+                              Split
+                            </button>
+                          {/if}
+                        </div>
+                      {/if}
+                    </div>
 
-                    {#if expandedCat && expandedCat.subcategories.length > 0}
+                    <!-- Income source -->
+                    <div class="flex items-center gap-3">
+                      <span class="w-28 flex-shrink-0 text-xs text-gray-500 uppercase tracking-wide">Income</span>
                       <select
-                        value={tx.subcategoryId ?? ""}
-                        on:change={e => {
-                          const subId = e.currentTarget.value || undefined
-                          transactionsStore.update(tx.id, { subcategoryId: subId })
-                        }}
+                        value={tx.paycheckId ?? ""}
+                        on:change={e => linkPaycheck(tx.id, e.currentTarget.value || undefined)}
                         class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
                       >
-                        <option value="">— No subcategory —</option>
-                        {#each [...expandedCat.subcategories].sort((a, b) => a.name.localeCompare(b.name)) as sub}
-                          <option value={sub.id}>{sub.name}</option>
+                        <option value="">— None —</option>
+                        {#each sortedPaychecks as paycheck}
+                          <option value={paycheck.id}>{paycheck.name}</option>
                         {/each}
                       </select>
-                    {/if}
+                    </div>
+
+                    <!-- Bill -->
+                    <div class="flex items-center gap-3">
+                      <span class="w-28 flex-shrink-0 text-xs text-gray-500 uppercase tracking-wide">Bill</span>
+                      <select
+                        value={tx.billId ?? ""}
+                        on:change={e => linkBill(tx.id, tx.date, e.currentTarget.value || undefined)}
+                        class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="">— None —</option>
+                        {#each sortedBills as bill}
+                          <option value={bill.id}>{bill.name}</option>
+                        {/each}
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Delete -->
+                  <div class="flex justify-end pt-1 border-t border-gray-700/40">
+                    <HoldToDelete
+                      class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-400 bg-red-950/30 border border-red-800/50 rounded hover:bg-red-900/40 transition-colors"
+                      label="Hold to delete transaction"
+                      on:confirm={() => transactionsStore.remove(tx.id)}
+                    >
+                      Delete Transaction
+                    </HoldToDelete>
                   </div>
                 </div>
               {/if}
