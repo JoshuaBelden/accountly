@@ -7,7 +7,7 @@
   import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
-  import type { Bill, Merchant, Paycheck, Transaction } from "$lib/types"
+  import type { Bill, Merchant, Paycheck, PlannedBillAssignment, Transaction } from "$lib/types"
   import { parseCsv, type ParsedCsvRow } from "$lib/utils/csvImport"
   import { formatCurrency } from "$lib/utils/currency"
   import { findMatchingPayDate, formatDateShort, todayISO } from "$lib/utils/date"
@@ -242,14 +242,21 @@
       }
       transactionsStore.add(tx)
 
-      // Link to planner assignment if one exists for this bill + month
+      // Link to planner assignment, creating one if needed
       if (bill) {
         const month = row.date.substring(0, 7)
         const assignments = plannerStore.getForMonth(month)
-        const assignment = assignments.find(a => a.billId === bill.id)
-        if (assignment) {
-          plannerStore.linkTransaction(assignment.id, tx.id)
+        let assignment = assignments.find(a => a.billId === bill.id)
+        if (!assignment) {
+          const newAssignment: PlannedBillAssignment = {
+            id: crypto.randomUUID(),
+            plannerMonth: month,
+            billId: bill.id,
+          }
+          plannerStore.assign(newAssignment)
+          assignment = newAssignment
         }
+        plannerStore.linkTransaction(assignment.id, tx.id)
       }
     })
     if (balanceUpdate !== null) {

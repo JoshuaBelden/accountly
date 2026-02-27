@@ -9,7 +9,15 @@
   export let assignment: PlannedBillAssignment | null
   export let plannerMonth: string
 
-  $: transaction = assignment?.transactionId ? $transactionsStore.find(t => t.id === assignment.transactionId) : null
+  $: transaction =
+    assignment?.transactionId
+      ? ($transactionsStore.find(t => t.id === assignment.transactionId) ?? null)
+      : ($transactionsStore.find(
+          t =>
+            t.billId === bill.id &&
+            t.clearedStatus === "cleared" &&
+            (t.plannerMonth === plannerMonth || t.date.startsWith(plannerMonth)),
+        ) ?? null)
   $: clearedByImport = transaction?.clearedStatus === "cleared"
   $: isPaid = clearedByImport || assignment?.manuallyPaid === true
   $: displayAmount = clearedByImport && transaction ? transaction.amount : (assignment?.overrideAmount ?? bill.amount)
