@@ -25,6 +25,8 @@ export interface Transaction {
   plannerMonth?: string
   notes?: string
   imported?: boolean
+  name?: string
+  merchantId?: string
   createdAt: string
   updatedAt: string
 }

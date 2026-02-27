@@ -28,7 +28,8 @@
       "Bash(npx prettier --write src/lib/utils/export.ts src/routes/settings/+page.svelte)",
       "Bash(npx prettier --write src/lib/utils/export.ts)",
       "Bash(npx prettier --write src/routes/budget/+page.svelte)",
-      "Bash(npx --prefix /Users/joshuabelden/Code/accountly prettier --write /Users/joshuabelden/Code/accountly/src/routes/budget/+page.svelte)"
+      "Bash(npx --prefix /Users/joshuabelden/Code/accountly prettier --write /Users/joshuabelden/Code/accountly/src/routes/budget/+page.svelte)",
+      "Bash(npx tsc --noEmit)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components"

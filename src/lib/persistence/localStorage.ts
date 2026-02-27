@@ -3,6 +3,7 @@ import type {
   AppSettings,
   Bill,
   BudgetCategory,
+  Merchant,
   MonthlyBudgetOverride,
   Paycheck,
   PlannedBillAssignment,
@@ -23,6 +24,7 @@ export interface ExportEnvelope {
   budgetCategories: BudgetCategory[]
   budgetOverrides: MonthlyBudgetOverride[]
   plannerAssignments: PlannedBillAssignment[]
+  merchants: Merchant[]
   settings: AppSettings
 }
 
@@ -60,6 +62,7 @@ export function exportAllData(
   budgetCategories: BudgetCategory[],
   budgetOverrides: MonthlyBudgetOverride[],
   plannerAssignments: PlannedBillAssignment[],
+  merchants: Merchant[],
   settings: AppSettings,
 ): ExportEnvelope {
   return {
@@ -72,6 +75,7 @@ export function exportAllData(
     budgetCategories,
     budgetOverrides,
     plannerAssignments,
+    merchants,
     settings,
   }
 }
@@ -88,6 +92,7 @@ export function validateEnvelope(data: unknown): data is ExportEnvelope {
     Array.isArray(obj.transactions) &&
     Array.isArray(obj.budgetCategories) &&
     Array.isArray(obj.budgetOverrides) &&
-    Array.isArray(obj.plannerAssignments)
+    Array.isArray(obj.plannerAssignments) &&
+    (!("merchants" in obj) || Array.isArray(obj.merchants))
   )
 }

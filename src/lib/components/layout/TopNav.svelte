@@ -7,6 +7,7 @@
     { href: "/budget", label: "Budget", primary: true },
     { href: "/accounts", label: "Accounts" },
     { href: "/bills", label: "Bills" },
+    { href: "/merchants", label: "Merchants" },
     { href: "/transactions", label: "Transactions" },
     { href: "/networth", label: "Net Worth" },
   ]

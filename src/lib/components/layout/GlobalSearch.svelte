@@ -5,16 +5,18 @@
   import { searchOpen } from "$lib/stores/search.store"
   import { accountsStore } from "$lib/stores/accounts.store"
   import { billsStore } from "$lib/stores/bills.store"
+  import { merchantsStore } from "$lib/stores/merchants.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
   import { budgetStore } from "$lib/stores/budget.store"
   import type { Account } from "$lib/types/account"
   import type { Bill } from "$lib/types/bill"
+  import type { Merchant } from "$lib/types/merchant"
   import type { Transaction } from "$lib/types/transaction"
   import type { BudgetCategory } from "$lib/types/budget"
 
   /** A single flattened search result shown in the panel. */
   interface SearchResult {
-    type: "Account" | "Bill" | "Transaction" | "Category" | "Subcategory"
+    type: "Account" | "Bill" | "Merchant" | "Transaction" | "Category" | "Subcategory"
     label: string
     sublabel: string
     href: string
@@ -24,11 +26,13 @@
   let inputEl: HTMLInputElement
   let accounts: Account[] = []
   let bills: Bill[] = []
+  let merchants: Merchant[] = []
   let transactions: Transaction[] = []
   let categories: BudgetCategory[] = []
 
   accountsStore.subscribe(value => (accounts = value))
   billsStore.subscribe(value => (bills = value))
+  merchantsStore.subscribe(value => (merchants = value))
   transactionsStore.subscribe(value => (transactions = value))
   budgetStore.categories.subscribe(value => (categories = value))
 
@@ -46,6 +50,7 @@
     searchQuery: string,
     accs: Account[],
     bils: Bill[],
+    mrchts: Merchant[],
     txns: Transaction[],
     cats: BudgetCategory[],
   ): SearchResult[] {
@@ -71,6 +76,17 @@
           label: bill.name,
           sublabel: `$${bill.amount.toFixed(2)} · ${bill.frequency}`,
           href: "/bills?q=" + encodeURIComponent(bill.name),
+        })
+      }
+    }
+
+    for (const merchant of mrchts) {
+      if (merchant.name.toLowerCase().includes(term)) {
+        results.push({
+          type: "Merchant",
+          label: merchant.name,
+          sublabel: merchant.hints,
+          href: "/merchants?q=" + encodeURIComponent(merchant.name),
         })
       }
     }
@@ -113,7 +129,7 @@
     return results
   }
 
-  $: results = computeResults(query, accounts, bills, transactions, categories)
+  $: results = computeResults(query, accounts, bills, merchants, transactions, categories)
 
   onMount(() => {
     const handleKeydown = (event: KeyboardEvent) => {
@@ -145,6 +161,7 @@
   const typeBadgeClass: Record<string, string> = {
     Account: "bg-blue-900/60 text-blue-300",
     Bill: "bg-purple-900/60 text-purple-300",
+    Merchant: "bg-indigo-900/60 text-indigo-300",
     Transaction: "bg-green-900/60 text-green-300",
     Category: "bg-orange-900/60 text-orange-300",
     Subcategory: "bg-amber-900/60 text-amber-300",

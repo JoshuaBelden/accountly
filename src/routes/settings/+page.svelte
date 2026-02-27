@@ -7,6 +7,7 @@
   import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { settingsStore } from "$lib/stores/settings.store"
+  import { merchantsStore } from "$lib/stores/merchants.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
   import type { BudgetCategory, MonthlyBudgetOverride } from "$lib/types"
   import { exportToFile, importFromFile } from "$lib/utils/export"
@@ -30,6 +31,7 @@
       categories,
       overrides,
       $plannerStore,
+      $merchantsStore,
       $settingsStore,
     )
     settingsStore.update(s => ({ ...s, lastExported: new Date().toISOString() }))
@@ -51,6 +53,7 @@
       budgetStore.categories.set(envelope.budgetCategories)
       budgetStore.overrides.set(envelope.budgetOverrides)
       plannerStore.set(envelope.plannerAssignments)
+      merchantsStore.set(envelope.merchants ?? [])
       settingsStore.set(envelope.settings)
       importSuccess = true
     } catch (err) {
@@ -68,6 +71,7 @@
     budgetStore.categories.set([])
     budgetStore.overrides.set([])
     plannerStore.set([])
+    merchantsStore.set([])
     settingsStore.reset()
     clearConfirmOpen = false
   }

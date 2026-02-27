@@ -219,7 +219,10 @@
     const q = searchQuery.trim().toLowerCase()
     if (!q) return activeTransactions
     return activeTransactions.filter(
-      t => t.description.toLowerCase().includes(q) || (t.notes && t.notes.toLowerCase().includes(q)),
+      t =>
+        t.description.toLowerCase().includes(q) ||
+        (t.name && t.name.toLowerCase().includes(q)) ||
+        (t.notes && t.notes.toLowerCase().includes(q)),
     )
   })()
 
@@ -498,7 +501,7 @@
 
                 <!-- Description + category + notes -->
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm text-gray-100 truncate">{tx.description}</div>
+                  <div class="text-sm text-gray-100 truncate">{tx.name ?? tx.description}</div>
                   {#if catLabel}
                     <div class="text-xs text-gray-500 truncate">{catLabel}</div>
                   {/if}
@@ -585,6 +588,12 @@
                       <div class="flex gap-2">
                         <span class="text-gray-500">Month</span>
                         <span class="text-gray-200">{tx.plannerMonth}</span>
+                      </div>
+                    {/if}
+                    {#if tx.name}
+                      <div class="col-span-2 flex gap-2">
+                        <span class="text-gray-500 flex-shrink-0">Merchant</span>
+                        <span class="text-violet-300">{tx.name}</span>
                       </div>
                     {/if}
                     <div class="col-span-2 flex gap-2">
