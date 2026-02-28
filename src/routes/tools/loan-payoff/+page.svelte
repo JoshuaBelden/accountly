@@ -3,7 +3,7 @@
   import { loanAccounts } from "$lib/stores/accounts.store"
   import type { LoanAccount } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
-  import { loanPayoffMonths, loanTotalInterest, simulateWaterfallPayoff } from "$lib/utils/finance"
+  import { buildYearlySummary, loanPayoffMonths, loanTotalInterest, simulateWaterfallPayoff } from "$lib/utils/finance"
 
   type Strategy = "avalanche" | "snowball"
 
@@ -19,6 +19,7 @@
   })
 
   $: strategyResults = simulateWaterfallPayoff(loans, extraPayment, strategy)
+  $: yearlySummaries = buildYearlySummary(loans, extraPayment, strategy)
 
   $: totalOwed = loans.reduce((sum, loan) => sum + loan.remainingBalance, 0)
   $: totalMinimums = loans.reduce((sum, loan) => sum + loan.minimumPayment, 0)
@@ -255,6 +256,59 @@
         {/if}
       {/each}
     </div>
+
+    <!-- Yearly Summary -->
+    {#if yearlySummaries.length > 0}
+      <div class="space-y-3">
+        <h2 class="section-title">Yearly Summary</h2>
+        <div class="card overflow-hidden p-0">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-700 bg-gray-800/50">
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Year</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Remaining Balance
+                </th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Interest Paid
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Paid Off</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each yearlySummaries as summary (summary.yearIndex)}
+                {@const isDebtFree = summary.totalBalance === 0}
+                <tr class="border-b border-gray-800 last:border-0 {isDebtFree ? 'bg-emerald-900/10' : ''}">
+                  <td class="px-4 py-3 font-medium {isDebtFree ? 'text-emerald-300' : 'text-gray-200'}">
+                    {summary.calendarYear}
+                  </td>
+                  <td
+                    class="px-4 py-3 text-right tabular-nums {isDebtFree
+                      ? 'text-emerald-400 font-semibold'
+                      : 'text-gray-300'}"
+                  >
+                    {formatCurrency(summary.totalBalance)}
+                  </td>
+                  <td class="px-4 py-3 text-right tabular-nums text-gray-400">
+                    {formatCurrency(summary.cumulativeInterest)}
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      {#each summary.loansCompletedThisYear as completed (completed.loanId)}
+                        <span class="badge-green">{completed.name}</span>
+                      {/each}
+                      {#if isDebtFree}
+                        <span class="text-xs font-medium text-emerald-400">Debt Free!</span>
+                      {/if}
+                    </div>
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {/if}
 
     <!-- Legend -->
     <div class="text-xs text-gray-500 leading-relaxed">

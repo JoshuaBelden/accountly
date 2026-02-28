@@ -1,4 +1,7 @@
 # Todo
+- Responsive design for phones
+- Add tip calculator
+- Persist data for multi-device access
 
 ## Savings Goals
 
