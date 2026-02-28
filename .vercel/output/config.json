@@ -15,6 +15,127 @@
 			]
 		},
 		{
+			"src": "/accounts",
+			"dest": "/accounts/"
+		},
+		{
+			"src": "/accounts/",
+			"status": 308,
+			"headers": {
+				"Location": "/accounts"
+			}
+		},
+		{
+			"src": "/bills",
+			"dest": "/bills/"
+		},
+		{
+			"src": "/bills/",
+			"status": 308,
+			"headers": {
+				"Location": "/bills"
+			}
+		},
+		{
+			"src": "/budget",
+			"dest": "/budget/"
+		},
+		{
+			"src": "/budget/",
+			"status": 308,
+			"headers": {
+				"Location": "/budget"
+			}
+		},
+		{
+			"src": "/merchants",
+			"dest": "/merchants/"
+		},
+		{
+			"src": "/merchants/",
+			"status": 308,
+			"headers": {
+				"Location": "/merchants"
+			}
+		},
+		{
+			"src": "/networth",
+			"dest": "/networth/"
+		},
+		{
+			"src": "/networth/",
+			"status": 308,
+			"headers": {
+				"Location": "/networth"
+			}
+		},
+		{
+			"src": "/planner",
+			"dest": "/planner/"
+		},
+		{
+			"src": "/planner/",
+			"status": 308,
+			"headers": {
+				"Location": "/planner"
+			}
+		},
+		{
+			"src": "/settings",
+			"dest": "/settings/"
+		},
+		{
+			"src": "/settings/",
+			"status": 308,
+			"headers": {
+				"Location": "/settings"
+			}
+		},
+		{
+			"src": "/tools",
+			"dest": "/tools/"
+		},
+		{
+			"src": "/tools/",
+			"status": 308,
+			"headers": {
+				"Location": "/tools"
+			}
+		},
+		{
+			"src": "/tools/loan-payoff",
+			"dest": "/tools/loan-payoff/"
+		},
+		{
+			"src": "/tools/loan-payoff/",
+			"status": 308,
+			"headers": {
+				"Location": "/tools/loan-payoff"
+			}
+		},
+		{
+			"src": "/tools/subscriptions",
+			"dest": "/tools/subscriptions/"
+		},
+		{
+			"src": "/tools/subscriptions/",
+			"status": 308,
+			"headers": {
+				"Location": "/tools/subscriptions"
+			}
+		},
+		{
+			"src": "/transactions",
+			"dest": "/transactions/"
+		},
+		{
+			"src": "/transactions/",
+			"status": 308,
+			"headers": {
+				"Location": "/transactions"
+			}
+		},
+		{
 			"src": "/_app/immutable/.+",
 			"headers": {
 				"cache-control": "public, immutable, max-age=31536000"
@@ -29,61 +150,50 @@
 			"continue": false
 		},
 		{
-			"src": "^/?(?:/__data.json)?$",
-			"dest": "/"
-		},
-		{
-			"src": "^/accounts/?(?:/__data.json)?$",
-			"dest": "/accounts"
-		},
-		{
 			"src": "^/api/sync/([^/]+?)/?(?:/__data.json)?$",
 			"dest": "/api/sync/[id]"
-		},
-		{
-			"src": "^/bills/?(?:/__data.json)?$",
-			"dest": "/bills"
-		},
-		{
-			"src": "^/budget/?(?:/__data.json)?$",
-			"dest": "/budget"
-		},
-		{
-			"src": "^/merchants/?(?:/__data.json)?$",
-			"dest": "/merchants"
-		},
-		{
-			"src": "^/networth/?(?:/__data.json)?$",
-			"dest": "/networth"
-		},
-		{
-			"src": "^/planner/?(?:/__data.json)?$",
-			"dest": "/planner"
-		},
-		{
-			"src": "^/settings/?(?:/__data.json)?$",
-			"dest": "/settings"
-		},
-		{
-			"src": "^/tools/?(?:/__data.json)?$",
-			"dest": "/tools"
-		},
-		{
-			"src": "^/tools/loan-payoff/?(?:/__data.json)?$",
-			"dest": "/tools/loan-payoff"
-		},
-		{
-			"src": "^/tools/subscriptions/?(?:/__data.json)?$",
-			"dest": "/tools/subscriptions"
-		},
-		{
-			"src": "^/transactions/?(?:/__data.json)?$",
-			"dest": "/transactions"
 		},
 		{
 			"src": "/.*",
 			"dest": "/![-]/catchall"
 		}
 	],
-	"overrides": {}
+	"overrides": {
+		"index.html": {
+			"path": ""
+		},
+		"accounts.html": {
+			"path": "accounts"
+		},
+		"bills.html": {
+			"path": "bills"
+		},
+		"budget.html": {
+			"path": "budget"
+		},
+		"merchants.html": {
+			"path": "merchants"
+		},
+		"networth.html": {
+			"path": "networth"
+		},
+		"planner.html": {
+			"path": "planner"
+		},
+		"settings.html": {
+			"path": "settings"
+		},
+		"tools.html": {
+			"path": "tools"
+		},
+		"tools/loan-payoff.html": {
+			"path": "tools/loan-payoff"
+		},
+		"tools/subscriptions.html": {
+			"path": "tools/subscriptions"
+		},
+		"transactions.html": {
+			"path": "transactions"
+		}
+	}
 }
