@@ -20,27 +20,9 @@
     <div class="relative flex items-center h-14 px-4">
       <!-- Top-left: logo -->
       <div class="absolute left-4 top-1/2 -translate-y-1/2">
-        <a href="/" class="flex items-center gap-2 group">
-          <div
-            class="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md group-hover:bg-indigo-500 transition-colors"
-          >
-            <svg
-              class="w-4 h-4 text-white"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
-          </div>
-          <span class="text-sm font-semibold tracking-tight text-gray-100 group-hover:text-white transition-colors"
-            >Accountly</span
-          >
+        <a href="/" class="flex items-center gap-2">
+          <img src="/logo.png" alt="" class="h-8 w-auto" />
+          <span class="font-display text-lg font-semibold tracking-wide text-gray-100 leading-none">Accountly</span>
         </a>
       </div>
 

@@ -42,7 +42,8 @@
       "Bash(npx prettier --write src/lib/utils/finance.ts)"
     ],
     "additionalDirectories": [
-      "/Users/joshuabelden/Code/accountly/src/lib/components"
+      "/Users/joshuabelden/Code/accountly/src/lib/components",
+      "/Users/joshuabelden/Code/accountly"
     ]
   }
 }
