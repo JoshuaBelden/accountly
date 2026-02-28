@@ -1,0 +1,1 @@
+function i(t,r="en-US",n="USD"){return new Intl.NumberFormat(r,{style:"currency",currency:n,minimumFractionDigits:2,maximumFractionDigits:2}).format(t)}function m(t,r="en-US",n="USD"){return Math.abs(t)>=1e6?new Intl.NumberFormat(r,{style:"currency",currency:n,notation:"compact",maximumFractionDigits:1}).format(t):i(t,r,n)}export{m as a,i as f};
