@@ -51,6 +51,15 @@
         {#if bill.autoPay}
           <Badge variant="blue">AutoPay</Badge>
         {/if}
+        {#if bill.isStreamingService}
+          <span class="text-xs text-violet-300 bg-violet-900/40 border border-violet-700/40 px-1.5 py-0.5 rounded">
+            Streaming
+          </span>
+        {:else if bill.isSubscription}
+          <span class="text-xs text-sky-300 bg-sky-900/40 border border-sky-700/40 px-1.5 py-0.5 rounded">
+            Subscription
+          </span>
+        {/if}
         {#if accountName}
           <span class="text-xs text-gray-500">· {accountName}</span>
         {/if}

@@ -36,3 +36,80 @@ export function loanProgress(loan: LoanAccount): number {
 export function futureValue(pv: number, annualRate: number, years: number): number {
   return pv * Math.pow(1 + annualRate, years)
 }
+
+/** Computes total interest paid over the life of a loan at the given monthly payment. */
+export function loanTotalInterest(balance: number, annualRate: number, monthlyPayment: number): number {
+  if (balance <= 0 || monthlyPayment <= 0) return 0
+  const monthlyRate = annualRate / 12
+  let remaining = balance
+  let totalInterest = 0
+  for (let month = 0; month < 1200; month++) {
+    if (remaining <= 0) break
+    const interest = remaining * monthlyRate
+    if (monthlyPayment <= interest) break
+    totalInterest += interest
+    remaining -= Math.min(monthlyPayment - interest, remaining)
+  }
+  return totalInterest
+}
+
+/** Per-loan result from a waterfall payoff simulation. */
+export interface LoanPayoffResult {
+  loanId: string
+  priority: number
+  strategyMonths: number
+  strategyInterest: number
+}
+
+/**
+ * Simulates avalanche or snowball debt payoff across multiple loans.
+ * Minimums freed when a loan is paid off are rolled into the next priority loan.
+ */
+export function simulateWaterfallPayoff(
+  loans: LoanAccount[],
+  extraPayment: number,
+  strategy: "avalanche" | "snowball",
+): LoanPayoffResult[] {
+  if (loans.length === 0) return []
+
+  const ordered = [...loans].sort((a, b) =>
+    strategy === "avalanche" ? b.interestRate - a.interestRate : a.remainingBalance - b.remainingBalance,
+  )
+
+  const balances = new Map(loans.map(loan => [loan.id, loan.remainingBalance]))
+  const interestAccrued = new Map(loans.map(loan => [loan.id, 0]))
+  const payoffMonth = new Map<string, number>()
+
+  for (let month = 1; month <= 1200; month++) {
+    if ([...balances.values()].every(balance => balance <= 0)) break
+
+    const rolledMinimums = ordered
+      .filter(loan => payoffMonth.has(loan.id))
+      .reduce((sum, loan) => sum + loan.minimumPayment, 0)
+    const totalExtra = extraPayment + rolledMinimums
+
+    const priorityLoan = ordered.find(loan => (balances.get(loan.id) ?? 0) > 0)
+
+    for (const loan of ordered) {
+      const balance = balances.get(loan.id) ?? 0
+      if (balance <= 0) continue
+      const monthlyRate = loan.interestRate / 12
+      const interest = balance * monthlyRate
+      interestAccrued.set(loan.id, (interestAccrued.get(loan.id) ?? 0) + interest)
+      const payment = loan === priorityLoan ? loan.minimumPayment + totalExtra : loan.minimumPayment
+      const principal = Math.min(Math.max(payment - interest, 0), balance)
+      const newBalance = balance - principal
+      balances.set(loan.id, newBalance < 0.005 ? 0 : newBalance)
+      if (newBalance < 0.005 && !payoffMonth.has(loan.id)) {
+        payoffMonth.set(loan.id, month)
+      }
+    }
+  }
+
+  return ordered.map((loan, index) => ({
+    loanId: loan.id,
+    priority: index + 1,
+    strategyMonths: payoffMonth.get(loan.id) ?? Infinity,
+    strategyInterest: interestAccrued.get(loan.id) ?? 0,
+  }))
+}

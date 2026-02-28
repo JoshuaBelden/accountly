@@ -12,6 +12,10 @@ export interface Bill {
   categoryId?: string
   subcategoryId?: string
   hints?: string
+  /** Whether this bill is a recurring subscription service. */
+  isSubscription?: boolean
+  /** Whether this subscription is specifically a streaming entertainment service. Implies isSubscription. */
+  isStreamingService?: boolean
   notes?: string
   createdAt: string
   updatedAt: string

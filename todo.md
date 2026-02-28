@@ -16,10 +16,6 @@ The budget page shows one month at a time. Add a trend view: last 6 months of sp
 
 A traditional calendar view for the current month with bills plotted on their due dates, paychecks on pay dates, and color-coded urgency. Much more scannable than the list. The planner has the data, just a different rendering.
 
-## Subscription Tracker
-
-Filter merchants/bills by monthly recurring flag and show total monthly subscription burn. Many people are shocked by this number. Auto-detect likely subscriptions from transaction history (same merchant, regular interval).
-
 ## Transaction Rules / Auto-Rules
 
 You have merchant matching. Add a broader rules engine: if description contains X and amount is between Y and Z, then assign category, split N%, flag as recurring. Reduces manual work after CSV import dramatically.

@@ -38,7 +38,8 @@
       "Bash(npx prettier --write src/lib/components/transactions/TransactionSplitEditor.svelte src/routes/transactions/+page.svelte)",
       "Bash(npx prettier --write src/lib/utils/defaultData.ts src/routes/settings/+page.svelte)",
       "Bash(npx prettier --write src/routes/settings/+page.svelte --plugin @prettier/plugin-svelte)",
-      "Bash(npx prettier --write src/routes/settings/+page.svelte)"
+      "Bash(npx prettier --write src/routes/settings/+page.svelte)",
+      "Bash(npx prettier --write src/lib/utils/finance.ts)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components"

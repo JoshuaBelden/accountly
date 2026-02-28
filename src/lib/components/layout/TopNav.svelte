@@ -12,6 +12,7 @@
     { href: "/merchants", label: "Merchants" },
     { href: "/transactions", label: "Transactions" },
     { href: "/networth", label: "Net Worth" },
+    { href: "/tools", label: "Tools" },
   ]
 </script>
 

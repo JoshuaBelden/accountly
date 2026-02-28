@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prettier --write src/lib/utils/finance.ts src/routes/tools/loan-payoff/+page.svelte src/lib/components/layout/TopNav.svelte src/routes/accounts/+page.svelte)"
+    ]
+  }
+}

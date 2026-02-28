@@ -321,6 +321,9 @@
             Total Owed: {formatCurrency(visibleLoans.reduce((s, a) => s + (a as LoanAccount).remainingBalance, 0))}
           </span>
         {/if}
+        <a href="/tools/loan-payoff" class="ml-auto text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+          Payoff Strategies →
+        </a>
       </h2>
       {#if $loanAccounts.length === 0}
         <EmptyState

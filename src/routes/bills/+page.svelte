@@ -114,6 +114,7 @@
       {/if}
     </div>
     <div class="flex items-center gap-3">
+      <a href="/tools/subscriptions" class="btn-secondary text-sm">Subscription Tracker</a>
       {#if reapplyResult}
         <span class="text-sm text-emerald-400">{reapplyResult}</span>
       {/if}

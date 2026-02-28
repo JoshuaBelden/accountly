@@ -18,6 +18,8 @@
   let categoryId = editBill?.categoryId ?? ""
   let subcategoryId = editBill?.subcategoryId ?? ""
   let hints = editBill?.hints ?? ""
+  let isSubscription = editBill?.isSubscription ?? false
+  let isStreamingService = editBill?.isStreamingService ?? false
   let notes = editBill?.notes ?? ""
 
   function now() {
@@ -49,6 +51,8 @@
       categoryId: categoryId || undefined,
       subcategoryId: subcategoryId || undefined,
       hints: hints || undefined,
+      isSubscription: isSubscription || undefined,
+      isStreamingService: isStreamingService || undefined,
       notes: notes || undefined,
       createdAt: editBill?.createdAt ?? now(),
       updatedAt: now(),
@@ -131,9 +135,36 @@
     {/if}
   </div>
 
-  <div class="flex items-center gap-3">
-    <input id="autopay" type="checkbox" bind:checked={autoPay} class="w-4 h-4 accent-indigo-500" />
-    <label for="autopay" class="text-sm text-gray-300 cursor-pointer">Auto-pay enabled</label>
+  <div class="space-y-2">
+    <div class="flex items-center gap-3">
+      <input id="autopay" type="checkbox" bind:checked={autoPay} class="w-4 h-4 accent-indigo-500" />
+      <label for="autopay" class="text-sm text-gray-300 cursor-pointer">Auto-pay enabled</label>
+    </div>
+    <div class="flex items-center gap-3">
+      <input
+        id="bill-subscription"
+        type="checkbox"
+        bind:checked={isSubscription}
+        on:change={() => { if (!isSubscription) isStreamingService = false }}
+        class="w-4 h-4 accent-indigo-500"
+      />
+      <label for="bill-subscription" class="text-sm text-gray-300 cursor-pointer">
+        Subscription — tracked in Subscription Tracker
+      </label>
+    </div>
+    {#if isSubscription}
+      <div class="flex items-center gap-3 pl-6">
+        <input
+          id="bill-streaming"
+          type="checkbox"
+          bind:checked={isStreamingService}
+          class="w-4 h-4 accent-violet-500"
+        />
+        <label for="bill-streaming" class="text-sm text-gray-300 cursor-pointer">
+          Streaming Service — grouped separately as entertainment
+        </label>
+      </div>
+    {/if}
   </div>
 
   <div>
