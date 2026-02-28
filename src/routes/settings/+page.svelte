@@ -74,7 +74,10 @@
     try {
       const syncId = await deriveSyncId(syncPassphrase)
       const response = await fetch(`/api/sync/${syncId}`)
-      if (!response.ok) throw new Error("Download failed")
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(`Server error ${response.status}: ${text}`)
+      }
       const data = await response.json()
       if (!data.blob) {
         syncStatus = "error"
