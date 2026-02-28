@@ -14,12 +14,91 @@
   import type { BudgetCategory, MonthlyBudgetOverride } from "$lib/types"
   import { exportToFile, importFromFile } from "$lib/utils/export"
   import { importDefaultData } from "$lib/utils/defaultData"
+  import { decryptBlob, deriveSyncId, encryptBlob } from "$lib/utils/crypto"
 
   let clearConfirmOpen = false
   let importError = ""
   let importSuccess = false
   let defaultDataSuccess = false
   let fileInput: HTMLInputElement
+
+  let syncPassphrase = $settingsStore.sync?.passphrase ?? ""
+  let syncStatus: "idle" | "uploading" | "downloading" | "success" | "error" = "idle"
+  let syncMessage = ""
+
+  function saveSyncPassphrase() {
+    settingsStore.setSyncPassphrase(syncPassphrase)
+  }
+
+  async function handleUpload() {
+    if (!syncPassphrase) return
+    syncStatus = "uploading"
+    syncMessage = ""
+    try {
+      const envelope = exportAllData(
+        $accountsStore,
+        $billsStore,
+        $paychecksStore,
+        $transactionsStore,
+        categories,
+        overrides,
+        $plannerStore,
+        $merchantsStore,
+        $settingsStore,
+      )
+      const plaintext = JSON.stringify(envelope)
+      const blob = await encryptBlob(plaintext, syncPassphrase)
+      const syncId = await deriveSyncId(syncPassphrase)
+      const response = await fetch(`/api/sync/${syncId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blob }),
+      })
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(`Server error ${response.status}: ${text}`)
+      }
+      settingsStore.markSynced()
+      syncStatus = "success"
+      syncMessage = "Data uploaded successfully."
+    } catch (err) {
+      syncStatus = "error"
+      syncMessage = err instanceof Error ? err.message : "Upload failed. Check your connection and try again."
+    }
+  }
+
+  async function handleDownload() {
+    if (!syncPassphrase) return
+    syncStatus = "downloading"
+    syncMessage = ""
+    try {
+      const syncId = await deriveSyncId(syncPassphrase)
+      const response = await fetch(`/api/sync/${syncId}`)
+      if (!response.ok) throw new Error("Download failed")
+      const data = await response.json()
+      if (!data.blob) {
+        syncStatus = "error"
+        syncMessage = "No cloud data found for this passphrase."
+        return
+      }
+      const plaintext = await decryptBlob(data.blob, syncPassphrase)
+      const envelope = JSON.parse(plaintext)
+      accountsStore.set(envelope.accounts)
+      billsStore.set(envelope.bills)
+      paychecksStore.set(envelope.paychecks)
+      transactionsStore.set(envelope.transactions)
+      budgetStore.categories.set(envelope.budgetCategories)
+      budgetStore.overrides.set(envelope.budgetOverrides)
+      plannerStore.set(envelope.plannerAssignments)
+      merchantsStore.set(envelope.merchants ?? [])
+      settingsStore.set({ ...envelope.settings, sync: { passphrase: syncPassphrase, lastSynced: new Date().toISOString() } })
+      syncStatus = "success"
+      syncMessage = "Data downloaded and loaded successfully."
+    } catch (err) {
+      syncStatus = "error"
+      syncMessage = err instanceof Error ? err.message : "Download failed. Check your passphrase and try again."
+    }
+  }
 
   let categories: BudgetCategory[] = []
   let overrides: MonthlyBudgetOverride[] = []
@@ -242,6 +321,74 @@
           <option value="de-DE">1.234,56 (EU)</option>
         </select>
       </div>
+    </div>
+  </section>
+
+  <!-- Cloud Sync -->
+  <section class="card space-y-4">
+    <h2 class="text-lg font-semibold text-gray-100">Cloud Sync</h2>
+    <p class="text-sm text-gray-400">
+      Optionally sync your data across devices using an encrypted cloud backup. Your data is encrypted in the browser
+      before upload — the server never sees your financial information.
+    </p>
+
+    <div class="space-y-2">
+      <label class="label" for="sync-passphrase">Passphrase</label>
+      <p class="text-xs text-gray-500">
+        Choose a strong, memorable passphrase. Anyone with this passphrase can access your sync data. Share it with
+        household members who need access.
+      </p>
+      <div class="flex gap-2">
+        <input
+          id="sync-passphrase"
+          type="password"
+          class="input flex-1"
+          placeholder="Enter a passphrase..."
+          bind:value={syncPassphrase}
+        />
+        <button class="btn-secondary" on:click={saveSyncPassphrase} disabled={!syncPassphrase}>
+          Save
+        </button>
+      </div>
+    </div>
+
+    {#if $settingsStore.sync?.lastSynced}
+      <p class="text-xs text-gray-500">
+        Last synced: {new Date($settingsStore.sync.lastSynced).toLocaleString()}
+      </p>
+    {/if}
+
+    {#if syncStatus === "success"}
+      <div class="bg-emerald-900/30 border border-emerald-700 rounded-lg p-3 text-sm text-emerald-300">
+        {syncMessage}
+      </div>
+    {:else if syncStatus === "error"}
+      <div class="bg-red-900/30 border border-red-700 rounded-lg p-3 text-sm text-red-300">
+        {syncMessage}
+      </div>
+    {/if}
+
+    <div class="flex gap-3">
+      <button
+        class="btn-primary"
+        on:click={handleUpload}
+        disabled={!syncPassphrase || syncStatus === "uploading" || syncStatus === "downloading"}
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+        {syncStatus === "uploading" ? "Uploading..." : "Upload to Cloud"}
+      </button>
+      <button
+        class="btn-secondary"
+        on:click={handleDownload}
+        disabled={!syncPassphrase || syncStatus === "uploading" || syncStatus === "downloading"}
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l4 4m-4-4V4" />
+        </svg>
+        {syncStatus === "downloading" ? "Downloading..." : "Download from Cloud"}
+      </button>
     </div>
   </section>
 

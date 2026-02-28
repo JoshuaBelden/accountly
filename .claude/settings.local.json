@@ -39,11 +39,15 @@
       "Bash(npx prettier --write src/lib/utils/defaultData.ts src/routes/settings/+page.svelte)",
       "Bash(npx prettier --write src/routes/settings/+page.svelte --plugin @prettier/plugin-svelte)",
       "Bash(npx prettier --write src/routes/settings/+page.svelte)",
-      "Bash(npx prettier --write src/lib/utils/finance.ts)"
+      "Bash(npx prettier --write src/lib/utils/finance.ts)",
+      "Bash(npm install mongodb @sveltejs/adapter-node)",
+      "Bash(npm uninstall @sveltejs/adapter-static)",
+      "Bash(ls /Users/joshuabelden/Code/accountly/.env*)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components",
-      "/Users/joshuabelden/Code/accountly"
+      "/Users/joshuabelden/Code/accountly",
+      "/Users/joshuabelden/Code/accountly/src/routes/api/sync"
     ]
   }
 }

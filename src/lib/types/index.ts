@@ -13,4 +13,8 @@ export interface AppSettings {
   currency: string
   locale: string
   lastExported?: string
+  sync?: {
+    passphrase: string
+    lastSynced?: string
+  }
 }
