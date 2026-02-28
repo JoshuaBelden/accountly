@@ -48,7 +48,8 @@
       "Bash(git add src/routes/+layout.ts)",
       "Bash(git add src/routes/+layout.ts src/app.html)",
       "Bash(git add src/routes/settings/+page.svelte)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(git add vite.config.ts)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components",
