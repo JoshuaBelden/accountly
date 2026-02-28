@@ -44,7 +44,8 @@
       "Bash(npm uninstall @sveltejs/adapter-static)",
       "Bash(ls /Users/joshuabelden/Code/accountly/.env*)",
       "Bash(npm install @sveltejs/adapter-vercel)",
-      "Bash(npm uninstall @sveltejs/adapter-node)"
+      "Bash(npm uninstall @sveltejs/adapter-node)",
+      "Bash(git add src/routes/+layout.ts)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components",
