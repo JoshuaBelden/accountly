@@ -1,6 +1,6 @@
 <script lang="ts">
   import { afterNavigate } from "$app/navigation"
-  import { page } from "$app/stores"
+  import { page } from "$app/state"
   import { searchOpen } from "$lib/stores/search.store"
 
   export let consented = false
@@ -18,11 +18,6 @@
     { href: "/tools", label: "Tools" },
   ]
 
-  /** Returns true if the given href matches the current page. */
-  function isActive(href: string): boolean {
-    return $page.url.pathname === href || $page.url.pathname.startsWith(href + "/")
-  }
-
   afterNavigate(() => {
     menuOpen = false
   })
@@ -36,7 +31,7 @@
     class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
       {!consented
       ? 'text-gray-600 cursor-not-allowed'
-      : isActive(primaryItem.href)
+      : page.url.pathname === primaryItem.href || page.url.pathname.startsWith(primaryItem.href + '/')
         ? 'bg-indigo-600 text-white'
         : 'text-indigo-300 border border-indigo-700 hover:text-white hover:bg-indigo-700'}"
   >
@@ -51,7 +46,7 @@
       class="hidden min-[1110px]:block px-4 py-2 rounded-lg text-sm font-medium transition-colors
         {!consented
         ? 'text-gray-600 cursor-not-allowed'
-        : isActive(item.href)
+        : page.url.pathname === item.href || page.url.pathname.startsWith(item.href + '/')
           ? 'bg-indigo-600 text-white'
           : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'}"
     >
@@ -92,7 +87,7 @@
           class="block px-4 py-2.5 text-sm font-medium transition-colors
             {!consented
             ? 'text-gray-600 cursor-not-allowed'
-            : isActive(item.href)
+            : page.url.pathname === item.href || page.url.pathname.startsWith(item.href + '/')
               ? 'text-indigo-400 bg-indigo-950'
               : 'text-gray-300 hover:text-white hover:bg-gray-800'}"
         >
@@ -123,7 +118,7 @@
 
   <a
     href="/settings"
-    class="ml-1 p-2 rounded-lg transition-colors {($page.url.pathname as string).includes('/settings')
+    class="ml-1 p-2 rounded-lg transition-colors {page.url.pathname.includes('/settings')
       ? 'text-white bg-indigo-600'
       : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'}"
     aria-label="Settings"
