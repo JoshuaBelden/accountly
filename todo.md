@@ -2,13 +2,10 @@
 
 ## Nice to Haves
 
-- Keyboard shortcuts throughout — navigate months, open forms, approve transactions
 - Notes on months — a simple text field per month to journal what happened ("started new job", "car repair")
 - Print / PDF export of the monthly planner or budget summary
 - Recurring transaction detection — scan imported transactions for patterns and suggest converting them to bills
-- Planner,Budget: Moving months should be sticky, add Current Month to get back
-- Add tip calculator
-- Create a release branch that triggers vercel
+- Keyboard shortcuts throughout — navigate months, open forms, approve transactions
 
 ## Accountly Cloud Sync — Feature Summary
 
