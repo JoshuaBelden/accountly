@@ -22,6 +22,23 @@
       </div>
     </a>
 
+    <a href="/tools/tip-calculator" class="card hover:border-indigo-700/60 hover:bg-gray-800/60 transition-colors group">
+      <div class="flex items-start gap-4">
+        <div class="w-10 h-10 rounded-lg bg-emerald-900/60 flex items-center justify-center shrink-0 group-hover:bg-emerald-800/60 transition-colors">
+          <svg class="w-5 h-5 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+          </svg>
+        </div>
+        <div>
+          <div class="font-medium text-gray-100 group-hover:text-white transition-colors">Tip Calculator</div>
+          <div class="text-sm text-gray-400 mt-0.5 leading-relaxed">
+            Enter a receipt amount and choose a tip — fixed dollar amounts, percentages, or a custom value.
+          </div>
+        </div>
+      </div>
+    </a>
+
     <a href="/tools/loan-payoff" class="card hover:border-indigo-700/60 hover:bg-gray-800/60 transition-colors group">
       <div class="flex items-start gap-4">
         <div class="w-10 h-10 rounded-lg bg-red-900/60 flex items-center justify-center shrink-0 group-hover:bg-red-800/60 transition-colors">
