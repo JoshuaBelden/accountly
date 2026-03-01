@@ -4,7 +4,7 @@ import type { RequestHandler } from "./$types"
 
 export const GET: RequestHandler = async ({ params }) => {
   try {
-    const collection = await getSyncsCollection()
+    const collection = getSyncsCollection()
     const doc = await collection.findOne({ _id: params.id })
     if (!doc) {
       return json({ blob: null, updatedAt: null })
@@ -31,7 +31,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
   const blob = (body as Record<string, string>).blob
 
   try {
-    const collection = await getSyncsCollection()
+    const collection = getSyncsCollection()
     await collection.updateOne(
       { _id: params.id },
       { $set: { blob, updatedAt: new Date().toISOString() } },

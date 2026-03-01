@@ -10,19 +10,17 @@ interface SyncDocument {
 
 let client: MongoClient | null = null
 
-async function getClient(): Promise<MongoClient> {
+function getClient(): MongoClient {
   if (!client) {
     client = new MongoClient(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000,
     })
-    await client.connect()
   }
   return client
 }
 
-/** Returns the syncs collection, connecting to MongoDB if needed. */
-export async function getSyncsCollection(): Promise<Collection<SyncDocument>> {
-  const mongoClient = await getClient()
-  return mongoClient.db("accountly").collection<SyncDocument>("syncs")
+/** Returns the syncs collection. The driver connects lazily on first operation. */
+export function getSyncsCollection(): Collection<SyncDocument> {
+  return getClient().db("accountly").collection<SyncDocument>("syncs")
 }
