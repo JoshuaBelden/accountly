@@ -1,4 +1,4 @@
-import { MONGODB_URI } from "$env/static/private"
+import { env } from "$env/dynamic/private"
 import { MongoClient, type Collection } from "mongodb"
 
 /** Shape of a sync document stored in MongoDB. */
@@ -12,7 +12,7 @@ let client: MongoClient | null = null
 
 function getClient(): MongoClient {
   if (!client) {
-    client = new MongoClient(MONGODB_URI, {
+    client = new MongoClient(env.MONGODB_URI, {
       serverSelectionTimeoutMS: 8000,
       connectTimeoutMS: 8000,
     })
