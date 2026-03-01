@@ -7,9 +7,8 @@
 - Print / PDF export of the monthly planner or budget summary
 - Recurring transaction detection — scan imported transactions for patterns and suggest converting them to bills
 - Planner,Budget: Moving months should be sticky, add Current Month to get back
-- Responsive design for phones
 - Add tip calculator
-- Persist data for multi-device access
+- Create a release branch that triggers vercel
 
 ## Accountly Cloud Sync — Feature Summary
 

@@ -22,7 +22,7 @@
       <div class="absolute left-4 top-1/2 -translate-y-1/2">
         <a href="/" class="flex items-center gap-2">
           <img src="/logo.png" alt="" class="h-8 w-auto" />
-          <span class="font-display text-lg font-semibold tracking-wide text-gray-100 leading-none">Accountly</span>
+          <span class="hidden min-[1110px]:inline font-display text-lg font-semibold tracking-wide text-gray-100 leading-none">Accountly</span>
         </a>
       </div>
 
@@ -31,8 +31,8 @@
         <TopNav consented={$consentStore} />
       </div>
 
-      <!-- Top-right: financial overview -->
-      <div class="absolute right-4 top-1/2 -translate-y-1/2">
+      <!-- Top-right: financial overview (hidden below 1260px) -->
+      <div class="hidden min-[1260px]:block absolute right-4 top-1/2 -translate-y-1/2">
         <AccountOverview />
       </div>
     </div>

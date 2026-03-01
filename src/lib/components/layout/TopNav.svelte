@@ -1,11 +1,14 @@
 <script lang="ts">
+  import { afterNavigate } from "$app/navigation"
   import { page } from "$app/stores"
   import { searchOpen } from "$lib/stores/search.store"
 
   export let consented = false
 
-  const navItems = [
-    { href: "/planner", label: "Planner", primary: true },
+  let menuOpen = false
+
+  const primaryItem = { href: "/planner", label: "Planner" }
+  const secondaryItems = [
     { href: "/budget", label: "Budget" },
     { href: "/accounts", label: "Accounts" },
     { href: "/bills", label: "Bills" },
@@ -14,25 +17,90 @@
     { href: "/networth", label: "Net Worth" },
     { href: "/tools", label: "Tools" },
   ]
+
+  /** Returns true if the given href matches the current page. */
+  function isActive(href: string): boolean {
+    return $page.url.pathname === href || $page.url.pathname.startsWith(href + "/")
+  }
+
+  afterNavigate(() => {
+    menuOpen = false
+  })
 </script>
 
-<nav class="flex items-center gap-1">
-  {#each navItems as item}
+<nav class="relative flex items-center gap-1">
+  <!-- Planner: always visible -->
+  <a
+    href={consented ? primaryItem.href : undefined}
+    aria-disabled={!consented}
+    class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
+      {!consented
+      ? 'text-gray-600 cursor-not-allowed'
+      : isActive(primaryItem.href)
+        ? 'bg-indigo-600 text-white'
+        : 'text-indigo-300 border border-indigo-700 hover:text-white hover:bg-indigo-700'}"
+  >
+    {primaryItem.label}
+  </a>
+
+  <!-- Secondary nav items: only visible on wide screens (>= 1110px) -->
+  {#each secondaryItems as item}
     <a
       href={consented ? item.href : undefined}
       aria-disabled={!consented}
-      class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
+      class="hidden min-[1110px]:block px-4 py-2 rounded-lg text-sm font-medium transition-colors
         {!consented
         ? 'text-gray-600 cursor-not-allowed'
-        : $page.url.pathname === item.href || $page.url.pathname.startsWith(item.href + '/')
+        : isActive(item.href)
           ? 'bg-indigo-600 text-white'
-          : item.primary
-            ? 'text-indigo-300 border border-indigo-700 hover:text-white hover:bg-indigo-700'
-            : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'}"
+          : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'}"
     >
       {item.label}
     </a>
   {/each}
+
+  <!-- Hamburger button: visible only when secondary items are hidden (< 1110px) -->
+  <button
+    disabled={!consented}
+    aria-label="Open navigation menu"
+    aria-expanded={menuOpen}
+    on:click={() => (menuOpen = !menuOpen)}
+    class="min-[1110px]:hidden p-2 rounded-lg transition-colors
+      {consented
+      ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'
+      : 'text-gray-600 cursor-not-allowed'}"
+  >
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      {#if menuOpen}
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      {:else}
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      {/if}
+    </svg>
+  </button>
+
+  <!-- Dropdown menu for secondary items -->
+  {#if menuOpen}
+    <div
+      class="absolute top-full mt-2 right-0 z-50 min-[1110px]:hidden
+             w-48 rounded-lg bg-gray-900 border border-gray-700 shadow-xl py-1"
+    >
+      {#each secondaryItems as item}
+        <a
+          href={consented ? item.href : undefined}
+          aria-disabled={!consented}
+          class="block px-4 py-2.5 text-sm font-medium transition-colors
+            {!consented
+            ? 'text-gray-600 cursor-not-allowed'
+            : isActive(item.href)
+              ? 'text-indigo-400 bg-indigo-950'
+              : 'text-gray-300 hover:text-white hover:bg-gray-800'}"
+        >
+          {item.label}
+        </a>
+      {/each}
+    </div>
+  {/if}
 
   <button
     disabled={!consented}
