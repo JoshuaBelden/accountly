@@ -1,1 +1,0 @@
-import{w as o}from"./CDiF9pw6.js";const t="accountly_consent";function r(){return typeof localStorage>"u"?!1:localStorage.getItem(t)==="true"}function n(){const e=o(r());return{subscribe:e.subscribe,accept(){typeof localStorage<"u"&&localStorage.setItem(t,"true"),e.set(!0)}}}const s=n();export{s as c};
