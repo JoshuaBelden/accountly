@@ -45,7 +45,11 @@ export async function encryptBlob(plaintext: string, passphrase: string): Promis
   const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength)
   combined.set(iv)
   combined.set(new Uint8Array(ciphertext), iv.byteLength)
-  return btoa(String.fromCharCode(...combined))
+  let binary = ""
+  for (let i = 0; i < combined.length; i++) {
+    binary += String.fromCharCode(combined[i])
+  }
+  return btoa(binary)
 }
 
 /**
