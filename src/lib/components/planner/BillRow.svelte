@@ -19,8 +19,15 @@
             (t.plannerMonth === plannerMonth || t.date.startsWith(plannerMonth)),
         ) ?? null)
   $: clearedByImport = transaction?.clearedStatus === "cleared"
-  $: isPaid = clearedByImport || assignment?.manuallyPaid === true
+  $: manuallyPaid = !clearedByImport && assignment?.manuallyPaid === true
+  $: isPaid = clearedByImport || manuallyPaid
   $: displayAmount = clearedByImport && transaction ? transaction.amount : (assignment?.overrideAmount ?? bill.amount)
+  $: isPastDue = !isPaid && !!bill.dueDayOfMonth && isPastDueDate(plannerMonth, bill.dueDayOfMonth)
+
+  function isPastDueDate(month: string, day: number): boolean {
+    const [year, monthNum] = month.split("-").map(Number)
+    return new Date(year, monthNum - 1, day) < new Date()
+  }
 
   function togglePaid() {
     if (clearedByImport) return
@@ -29,9 +36,11 @@
 </script>
 
 <div
-  class="flex flex-col gap-1 py-2 px-3 rounded-lg {isPaid
+  class="flex flex-col gap-1 py-2 px-3 rounded-lg {clearedByImport
     ? 'bg-emerald-950/30'
-    : 'hover:bg-gray-800/50'} transition-colors"
+    : manuallyPaid
+      ? 'bg-blue-950/30'
+      : 'hover:bg-gray-800/50'} transition-colors"
 >
   <div class="flex items-center gap-3">
     {#if bill.autoPay}
@@ -54,9 +63,11 @@
         on:click={togglePaid}
         disabled={clearedByImport}
         title={clearedByImport ? "Cleared via imported transaction" : isPaid ? "Mark as unpaid" : "Mark as paid"}
-        class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors {isPaid
-          ? 'bg-emerald-500 border-emerald-500'
-          : 'border-gray-600 hover:border-emerald-500'} {clearedByImport ? 'cursor-default' : 'cursor-pointer'}"
+        class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors {clearedByImport
+          ? 'bg-emerald-500 border-emerald-500 cursor-default'
+          : manuallyPaid
+            ? 'bg-blue-500 border-blue-500 cursor-pointer'
+            : 'border-blue-500 hover:border-blue-400 cursor-pointer'}"
       >
         {#if isPaid}
           <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -67,11 +78,11 @@
     {/if}
 
     <div class="flex-1 min-w-0">
-      <span class="text-sm {isPaid ? 'line-through text-gray-500' : 'text-gray-200'} truncate">
+      <span class="text-sm {isPaid ? 'line-through text-gray-500' : isPastDue ? 'text-red-400' : 'text-gray-200'} truncate">
         {bill.name}
       </span>
       {#if bill.dueDayOfMonth}
-        <span class="text-xs text-gray-600 ml-1">due {bill.dueDayOfMonth}</span>
+        <span class="text-xs {isPastDue ? 'text-red-500' : 'text-gray-600'} ml-1">due {bill.dueDayOfMonth}</span>
       {/if}
       {#if bill.autoPay}
         <span class="text-xs text-gray-600 ml-1">autopay</span>
