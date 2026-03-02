@@ -9,6 +9,7 @@
   import { checkingAccounts, savingsAccounts } from "$lib/stores/accounts.store"
   import { billsStore } from "$lib/stores/bills.store"
   import { budgetStore } from "$lib/stores/budget.store"
+  import { merchantsStore } from "$lib/stores/merchants.store"
   import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
@@ -141,6 +142,10 @@
   // Budget categories for display
   let budgetCategories: BudgetCategory[] = []
   budgetStore.categories.subscribe(c => (budgetCategories = c))
+
+  $: merchantIconById = Object.fromEntries(
+    $merchantsStore.filter(m => m.icon).map(m => [m.id, m.icon as string]),
+  )
 
   $: sortedPaychecks = [...$paychecksStore].sort((a, b) => a.name.localeCompare(b.name))
   $: sortedBills = [...$billsStore].sort((a, b) => a.name.localeCompare(b.name))
@@ -519,14 +524,23 @@
                 </div>
 
                 <!-- Description + category + notes -->
-                <div class="flex-1 min-w-0">
-                  <div class="text-sm text-gray-100 truncate">{tx.name ?? tx.description}</div>
-                  {#if catLabel}
-                    <div class="text-xs text-gray-500 truncate">{catLabel}</div>
+                <div class="flex-1 min-w-0 flex items-center gap-2">
+                  {#if tx.merchantId && merchantIconById[tx.merchantId]}
+                    <img
+                      src={merchantIconById[tx.merchantId]}
+                      alt=""
+                      class="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                    />
                   {/if}
-                  {#if tx.notes && !isExpanded}
-                    <div class="text-xs text-gray-600 italic truncate">{tx.notes}</div>
-                  {/if}
+                  <div class="min-w-0">
+                    <div class="text-sm text-gray-100 truncate">{tx.name ?? tx.description}</div>
+                    {#if catLabel}
+                      <div class="text-xs text-gray-500 truncate">{catLabel}</div>
+                    {/if}
+                    {#if tx.notes && !isExpanded}
+                      <div class="text-xs text-gray-600 italic truncate">{tx.notes}</div>
+                    {/if}
+                  </div>
                 </div>
 
                 <!-- Account badge (filtered view only) -->

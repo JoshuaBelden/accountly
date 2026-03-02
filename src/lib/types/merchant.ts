@@ -3,6 +3,7 @@ export interface Merchant {
   id: string
   name: string
   hints: string
+  icon?: string
   categoryId?: string
   subcategoryId?: string
   notes?: string
