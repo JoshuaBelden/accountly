@@ -80,6 +80,14 @@
     accountsStore.remove(e.detail.id)
   }
 
+  function handleMoveUp(e: CustomEvent<Account>) {
+    accountsStore.reorderBankAccount(e.detail.id, "up")
+  }
+
+  function handleMoveDown(e: CustomEvent<Account>) {
+    accountsStore.reorderBankAccount(e.detail.id, "down")
+  }
+
   function getAccountName(id: string) {
     return $accountsStore.find(a => a.id === id)?.name ?? "Unknown"
   }
@@ -225,8 +233,17 @@
             on:action={openAdd}
           />
         {:else}
-          {#each visibleChecking as account (account.id)}
-            <AccountCard {account} on:edit={openEdit} on:delete={handleDelete} />
+          {#each visibleChecking as account, i (account.id)}
+            <AccountCard
+              {account}
+              reorderable={visibleChecking.length > 1}
+              isFirst={i === 0}
+              isLast={i === visibleChecking.length - 1}
+              on:edit={openEdit}
+              on:delete={handleDelete}
+              on:moveup={handleMoveUp}
+              on:movedown={handleMoveDown}
+            />
           {/each}
         {/if}
 
@@ -240,8 +257,17 @@
               on:action={openAdd}
             />
           {:else}
-            {#each visibleSavings as account (account.id)}
-              <AccountCard {account} on:edit={openEdit} on:delete={handleDelete} />
+            {#each visibleSavings as account, i (account.id)}
+              <AccountCard
+                {account}
+                reorderable={visibleSavings.length > 1}
+                isFirst={i === 0}
+                isLast={i === visibleSavings.length - 1}
+                on:edit={openEdit}
+                on:delete={handleDelete}
+                on:moveup={handleMoveUp}
+                on:movedown={handleMoveDown}
+              />
             {/each}
           {/if}
         {/if}

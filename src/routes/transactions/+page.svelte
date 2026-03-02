@@ -790,4 +790,4 @@
 </Modal>
 
 <!-- Import Transactions Modal -->
-<ImportTransactionsModal open={importOpen} on:close={() => (importOpen = false)} />
+<ImportTransactionsModal open={importOpen} defaultAccountId={selectedAccountId} on:close={() => (importOpen = false)} />

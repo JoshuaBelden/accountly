@@ -6,6 +6,9 @@
   import { createEventDispatcher } from "svelte"
 
   export let account: CheckingAccount | SavingsAccount
+  export let reorderable = false
+  export let isFirst = false
+  export let isLast = false
 
   const dispatch = createEventDispatcher()
 </script>
@@ -53,6 +56,30 @@
       </div>
     </div>
     <div class="flex gap-1">
+      {#if reorderable}
+        <div class="flex flex-col">
+          <button
+            class="btn-ghost p-1 leading-none disabled:opacity-20 disabled:cursor-default"
+            disabled={isFirst}
+            aria-label="Move up"
+            on:click={() => dispatch("moveup", account)}
+          >
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+          <button
+            class="btn-ghost p-1 leading-none disabled:opacity-20 disabled:cursor-default"
+            disabled={isLast}
+            aria-label="Move down"
+            on:click={() => dispatch("movedown", account)}
+          >
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+      {/if}
       <button class="btn-ghost p-2" on:click={() => dispatch("edit", account)} aria-label="Edit">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path

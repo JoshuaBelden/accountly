@@ -7,14 +7,21 @@
   import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
-  import type { Bill, Merchant, Paycheck, PlannedBillAssignment, Transaction } from "$lib/types"
-  import { parseCsv, type ParsedCsvRow } from "$lib/utils/csvImport"
+  import type { Bill, CheckingAccount, CsvFormat, Merchant, Paycheck, PlannedBillAssignment, SavingsAccount, Transaction } from "$lib/types"
+  import {
+    autoDetectFormat,
+    detectDateFormat,
+    detectHeaders,
+    parseCsvWithFormat,
+    type ParsedCsvRow,
+  } from "$lib/utils/csvImport"
   import { formatCurrency } from "$lib/utils/currency"
   import { findMatchingPayDate, formatDateShort, todayISO } from "$lib/utils/date"
   import { createEventDispatcher } from "svelte"
   import { get } from "svelte/store"
 
   export let open = false
+  export let defaultAccountId = ""
 
   const dispatch = createEventDispatcher()
 
@@ -26,33 +33,102 @@
     matchedCategoryLabel?: string
   }
 
-  let step: "upload" | "preview" = "upload"
+  type Step = "upload" | "mapping" | "preview"
+
+  let step: Step = "upload"
   let selectedAccountId = ""
+
+  $: if (open) selectedAccountId = defaultAccountId
   let parsedRows: RowWithMeta[] = []
   let selected: boolean[] = []
   let dragover = false
   let error = ""
   let fileInput: HTMLInputElement
 
+  // Raw CSV text held during mapping step
+  let rawCsvText = ""
+  let csvHeaders: string[] = []
+
+  // Mapping step state
+  let mappingDateField = ""
+  let mappingDescField = ""
+  let mappingUseDebitCredit = false
+  let mappingAmountField = ""
+  let mappingTypeField = ""
+  let mappingDebitField = ""
+  let mappingCreditField = ""
+  let mappingBalanceField = ""
+  let mappingDateFormat: CsvFormat["dateFormat"] = "MM/DD/YY"
+  let mappingSaveToAccount = false
+
   $: accounts = [...$checkingAccounts, ...$savingsAccounts]
+  $: selectedAccount = accounts.find(acct => acct.id === selectedAccountId) as
+    | CheckingAccount
+    | SavingsAccount
+    | undefined
   $: selectedCount = selected.filter(Boolean).length
   $: duplicateCount = parsedRows.filter(r => r.isDuplicate).length
   $: allSelected = selected.length > 0 && selected.every(Boolean)
-  // If the first (most recent) row is today, its balance reflects the current account balance
-  $: balanceUpdate = parsedRows.length > 0 && parsedRows[0].date === todayISO() ? parsedRows[0].balance : null
+  $: balanceUpdate =
+    parsedRows.length > 0 && parsedRows[0].date === todayISO() && parsedRows[0].balance > 0
+      ? parsedRows[0].balance
+      : null
 
   function reset() {
     step = "upload"
     parsedRows = []
     selected = []
-    selectedAccountId = ""
+    selectedAccountId = defaultAccountId
     error = ""
     dragover = false
+    rawCsvText = ""
+    csvHeaders = []
+    resetMappingFields()
+  }
+
+  function resetMappingFields() {
+    mappingDateField = ""
+    mappingDescField = ""
+    mappingUseDebitCredit = false
+    mappingAmountField = ""
+    mappingTypeField = ""
+    mappingDebitField = ""
+    mappingCreditField = ""
+    mappingBalanceField = ""
+    mappingDateFormat = "MM/DD/YY"
+    mappingSaveToAccount = false
   }
 
   function handleClose() {
     reset()
     dispatch("close")
+  }
+
+  /** Applies a saved CsvFormat to the mapping step fields. */
+  function applyFormatToMapping(format: CsvFormat) {
+    mappingDateField = format.dateField
+    mappingDescField = format.descriptionField
+    mappingUseDebitCredit = !format.amountField && (!!format.debitField || !!format.creditField)
+    mappingAmountField = format.amountField ?? ""
+    mappingTypeField = format.typeField ?? ""
+    mappingDebitField = format.debitField ?? ""
+    mappingCreditField = format.creditField ?? ""
+    mappingBalanceField = format.balanceField ?? ""
+    mappingDateFormat = format.dateFormat
+  }
+
+  /** Builds a CsvFormat from the current mapping step fields. */
+  function buildFormatFromMapping(): CsvFormat {
+    return {
+      dateField: mappingDateField,
+      descriptionField: mappingDescField,
+      amountField: mappingUseDebitCredit ? undefined : mappingAmountField || undefined,
+      typeField: mappingUseDebitCredit ? undefined : mappingTypeField || undefined,
+      debitField: mappingUseDebitCredit ? mappingDebitField || undefined : undefined,
+      creditField: mappingUseDebitCredit ? mappingCreditField || undefined : undefined,
+      balanceField: mappingBalanceField || undefined,
+      dateFormat: mappingDateFormat,
+    }
   }
 
   function processFile(file: File) {
@@ -65,38 +141,54 @@
     reader.onload = evt => {
       try {
         const text = evt.target?.result as string
-        const rows = parseCsv(text)
-        if (rows.length === 0) {
-          error = "No transactions found in the file."
+        rawCsvText = text
+        csvHeaders = detectHeaders(text)
+
+        if (csvHeaders.length === 0 || csvHeaders.every(h => !h)) {
+          error = "Could not read column headers from the file. The file may be empty or use an unsupported format."
           return
         }
-        const existing = get(transactionsStore)
-        const existingKeys = new Set(existing.map(t => `${t.date}|${t.description}|${t.amount}`))
-        parsedRows = rows.map(r => {
-          const matchedBill = matchBill(r.description)
-          const matchedPaycheck = !matchedBill && r.rawType === "Credit" ? matchPaycheck(r.description) : undefined
-          const matchedMerchant = matchMerchant(r.description)
-          let matchedCategoryLabel: string | undefined
-          if (matchedBill?.categoryId) {
-            matchedCategoryLabel = getCategoryLabel(matchedBill.categoryId, matchedBill.subcategoryId)
-          } else if (matchedMerchant?.categoryId) {
-            matchedCategoryLabel = getCategoryLabel(matchedMerchant.categoryId, matchedMerchant.subcategoryId)
-          } else if (!matchedPaycheck) {
-            const catMatch = matchCategory(r.description)
-            if (catMatch) matchedCategoryLabel = getCategoryLabel(catMatch.categoryId, catMatch.subcategoryId)
+
+        // If account is already selected and has a saved format, try to use it directly
+        const account = accounts.find(acct => acct.id === selectedAccountId) as
+          | CheckingAccount
+          | SavingsAccount
+          | undefined
+        if (account?.csvFormat) {
+          const rows = tryParseWithFormat(text, account.csvFormat)
+          if (rows !== null) {
+            applyFormatToMapping(account.csvFormat)
+            finalizeRows(rows)
+            step = "preview"
+            return
           }
-          return {
-            ...r,
-            isDuplicate: existingKeys.has(`${r.date}|${r.description}|${r.amount}`),
-            matchedBill,
-            matchedPaycheck,
-            matchedMerchant,
-            matchedCategoryLabel,
-          }
+        }
+
+        // Otherwise populate mapping fields from auto-detection and go to mapping step
+        const { format: detected, useDebitCredit } = autoDetectFormat(csvHeaders)
+        applyFormatToMapping({
+          dateField: detected.dateField ?? "",
+          descriptionField: detected.descriptionField ?? "",
+          amountField: detected.amountField,
+          typeField: detected.typeField,
+          debitField: detected.debitField,
+          creditField: detected.creditField,
+          balanceField: detected.balanceField,
+          dateFormat: "MM/DD/YY",
         })
-        selected = parsedRows.map(r => !r.isDuplicate)
-        if (accounts.length === 1) selectedAccountId = accounts[0].id
-        step = "preview"
+        mappingUseDebitCredit = useDebitCredit
+
+        // Sniff date format from first data row
+        const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim().split("\n")
+        if (lines.length >= 2 && mappingDateField) {
+          const firstDataCols = parseCsvLine(lines[1])
+          const dateColIndex = csvHeaders.findIndex(h => h === mappingDateField)
+          if (dateColIndex >= 0 && firstDataCols[dateColIndex]) {
+            mappingDateFormat = detectDateFormat(firstDataCols[dateColIndex])
+          }
+        }
+
+        step = "mapping"
       } catch {
         error = "Failed to parse the CSV file. Please check the format."
       }
@@ -105,6 +197,101 @@
       error = "Failed to read the file."
     }
     reader.readAsText(file)
+  }
+
+  /** Simple CSV line parser for sniffing date values — not the full parser. */
+  function parseCsvLine(line: string): string[] {
+    const cols: string[] = []
+    let current = ""
+    let inQuotes = false
+    for (const ch of line) {
+      if (ch === '"') {
+        inQuotes = !inQuotes
+      } else if (ch === "," && !inQuotes) {
+        cols.push(current.trim())
+        current = ""
+      } else {
+        current += ch
+      }
+    }
+    cols.push(current.trim())
+    return cols
+  }
+
+  function tryParseWithFormat(text: string, format: CsvFormat): RowWithMeta[] | null {
+    try {
+      const rows = parseCsvWithFormat(text, format)
+      if (rows.length === 0) return null
+      return enrichRows(rows)
+    } catch {
+      return null
+    }
+  }
+
+  function confirmMapping() {
+    error = ""
+    if (!mappingDateField || !mappingDescField) {
+      error = "Date and Description columns are required."
+      return
+    }
+    if (!mappingUseDebitCredit && !mappingAmountField) {
+      error = "Please select an Amount column."
+      return
+    }
+    if (mappingUseDebitCredit && !mappingDebitField && !mappingCreditField) {
+      error = "Please select at least one of Debit or Credit columns."
+      return
+    }
+    if (!selectedAccountId) {
+      error = "Please select an account."
+      return
+    }
+
+    const format = buildFormatFromMapping()
+    const rows = tryParseWithFormat(rawCsvText, format)
+    if (rows === null || rows.length === 0) {
+      error = "No transactions could be parsed with the selected mapping. Please check your column selections."
+      return
+    }
+
+    if (mappingSaveToAccount) {
+      accountsStore.update(selectedAccountId, { csvFormat: format } as Partial<CheckingAccount>)
+    }
+
+    finalizeRows(rows)
+    step = "preview"
+  }
+
+  function enrichRows(rows: ParsedCsvRow[]): RowWithMeta[] {
+    const existing = get(transactionsStore).filter(transaction => transaction.accountId === selectedAccountId)
+    const existingKeys = new Set(existing.map(transaction => `${transaction.date}|${transaction.description}|${transaction.amount}`))
+    return rows.map(row => {
+      const matchedBill = matchBill(row.description)
+      const matchedPaycheck = !matchedBill && row.rawType === "Credit" ? matchPaycheck(row.description) : undefined
+      const matchedMerchant = matchMerchant(row.description)
+      let matchedCategoryLabel: string | undefined
+      if (matchedBill?.categoryId) {
+        matchedCategoryLabel = getCategoryLabel(matchedBill.categoryId, matchedBill.subcategoryId)
+      } else if (matchedMerchant?.categoryId) {
+        matchedCategoryLabel = getCategoryLabel(matchedMerchant.categoryId, matchedMerchant.subcategoryId)
+      } else if (!matchedPaycheck) {
+        const catMatch = matchCategory(row.description)
+        if (catMatch) matchedCategoryLabel = getCategoryLabel(catMatch.categoryId, catMatch.subcategoryId)
+      }
+      return {
+        ...row,
+        isDuplicate: existingKeys.has(`${row.date}|${row.description}|${row.amount}`),
+        matchedBill,
+        matchedPaycheck,
+        matchedMerchant,
+        matchedCategoryLabel,
+      }
+    })
+  }
+
+  function finalizeRows(rows: RowWithMeta[]) {
+    parsedRows = rows
+    selected = rows.map(row => !row.isDuplicate)
   }
 
   function handleDrop(e: DragEvent) {
@@ -130,7 +317,7 @@
   }
 
   function skipDuplicates() {
-    selected = parsedRows.map(r => !r.isDuplicate)
+    selected = parsedRows.map(row => !row.isDuplicate)
   }
 
   function matchBill(description: string): Bill | undefined {
@@ -218,7 +405,7 @@
       const categoryMatch = !bill && !paycheck && !merchant?.categoryId ? matchCategory(row.description) : undefined
       const paycheckPayDate = paycheck ? findMatchingPayDate(paycheck, row.date) : undefined
 
-      const tx: Transaction = {
+      const transaction: Transaction = {
         id: crypto.randomUUID(),
         date: row.date,
         description: row.description,
@@ -234,13 +421,11 @@
         plannedPaycheckDate: paycheckPayDate,
         categoryId: bill?.categoryId ?? merchant?.categoryId ?? categoryMatch?.categoryId,
         subcategoryId: bill?.subcategoryId ?? merchant?.subcategoryId ?? categoryMatch?.subcategoryId,
-        plannerMonth: paycheckPayDate
-          ? paycheckPayDate.substring(0, 7)
-          : row.date.substring(0, 7),
+        plannerMonth: paycheckPayDate ? paycheckPayDate.substring(0, 7) : row.date.substring(0, 7),
         createdAt: now,
         updatedAt: now,
       }
-      transactionsStore.add(tx)
+      transactionsStore.add(transaction)
 
       // Link to planner assignment, creating one if needed
       if (bill) {
@@ -256,7 +441,7 @@
           plannerStore.assign(newAssignment)
           assignment = newAssignment
         }
-        plannerStore.linkTransaction(assignment.id, tx.id)
+        plannerStore.linkTransaction(assignment.id, transaction.id)
       }
     })
     if (balanceUpdate !== null) {
@@ -273,7 +458,7 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div
       class="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed px-8 py-14 text-center transition-colors
-				{dragover ? 'border-indigo-400 bg-indigo-950/20' : 'border-gray-600 hover:border-gray-500'}"
+			{dragover ? 'border-indigo-400 bg-indigo-950/20' : 'border-gray-600 hover:border-gray-500'}"
       on:drop={handleDrop}
       on:dragover={handleDragover}
       on:dragleave={() => (dragover = false)}
@@ -298,6 +483,171 @@
     {#if error}
       <p class="mt-3 text-sm text-red-400">{error}</p>
     {/if}
+  {:else if step === "mapping"}
+    <!-- Column mapping step -->
+    <div class="space-y-5">
+      <p class="text-sm text-gray-400">
+        Map the columns from your CSV to the fields Accountly needs. Your selection will be remembered for this account.
+      </p>
+
+      <!-- Account selector -->
+      <div class="flex items-center gap-3">
+        <label class="label mb-0 whitespace-nowrap" for="mapping-account">Import to account</label>
+        <select id="mapping-account" class="input flex-1" bind:value={selectedAccountId}>
+          <option value="">Select account…</option>
+          {#each accounts as acct}
+            <option value={acct.id}>{acct.name}</option>
+          {/each}
+        </select>
+      </div>
+
+      <!-- Detected headers preview -->
+      <div class="rounded-lg border border-gray-700 bg-gray-800/40 px-3 py-2">
+        <p class="text-xs text-gray-500 mb-1">Detected columns</p>
+        <p class="text-xs text-gray-300 font-mono">{csvHeaders.join(", ")}</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <!-- Date column -->
+        <div>
+          <label class="label" for="map-date">Date column <span class="text-red-400">*</span></label>
+          <select id="map-date" class="input" bind:value={mappingDateField}>
+            <option value="">Select column…</option>
+            {#each csvHeaders as header}
+              <option value={header}>{header}</option>
+            {/each}
+          </select>
+        </div>
+
+        <!-- Date format -->
+        <div>
+          <label class="label" for="map-date-fmt">Date format <span class="text-red-400">*</span></label>
+          <select id="map-date-fmt" class="input" bind:value={mappingDateFormat}>
+            <option value="MM/DD/YY">MM/DD/YY — e.g. 03/02/26</option>
+            <option value="M/D/YYYY">M/D/YYYY — e.g. 3/2/2026</option>
+            <option value="MM/DD/YYYY">MM/DD/YYYY — e.g. 03/02/2026</option>
+            <option value="YYYY-MM-DD">YYYY-MM-DD — e.g. 2026-03-02</option>
+          </select>
+        </div>
+
+        <!-- Description column -->
+        <div class="col-span-2">
+          <label class="label" for="map-desc">Description column <span class="text-red-400">*</span></label>
+          <select id="map-desc" class="input" bind:value={mappingDescField}>
+            <option value="">Select column…</option>
+            {#each csvHeaders as header}
+              <option value={header}>{header}</option>
+            {/each}
+          </select>
+        </div>
+      </div>
+
+      <!-- Amount approach toggle -->
+      <div>
+        <p class="label mb-2">Amount columns <span class="text-red-400">*</span></p>
+        <div class="flex gap-4">
+          <label class="flex items-center gap-2 cursor-pointer text-sm">
+            <input
+              type="radio"
+              name="amount-mode"
+              bind:group={mappingUseDebitCredit}
+              value={false}
+              class="text-indigo-500"
+            />
+            <span class="text-gray-200">Single amount + type column</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer text-sm">
+            <input
+              type="radio"
+              name="amount-mode"
+              bind:group={mappingUseDebitCredit}
+              value={true}
+              class="text-indigo-500"
+            />
+            <span class="text-gray-200">Separate debit and credit columns</span>
+          </label>
+        </div>
+      </div>
+
+      {#if !mappingUseDebitCredit}
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="label" for="map-amount">Amount column <span class="text-red-400">*</span></label>
+            <select id="map-amount" class="input" bind:value={mappingAmountField}>
+              <option value="">Select column…</option>
+              {#each csvHeaders as header}
+                <option value={header}>{header}</option>
+              {/each}
+            </select>
+          </div>
+          <div>
+            <label class="label" for="map-type">
+              Type column
+              <span class="text-gray-500 font-normal">(optional)</span>
+            </label>
+            <select id="map-type" class="input" bind:value={mappingTypeField}>
+              <option value="">None — use sign of amount</option>
+              {#each csvHeaders as header}
+                <option value={header}>{header}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+      {:else}
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="label" for="map-debit">Debit column (withdrawals)</label>
+            <select id="map-debit" class="input" bind:value={mappingDebitField}>
+              <option value="">None</option>
+              {#each csvHeaders as header}
+                <option value={header}>{header}</option>
+              {/each}
+            </select>
+          </div>
+          <div>
+            <label class="label" for="map-credit">Credit column (deposits)</label>
+            <select id="map-credit" class="input" bind:value={mappingCreditField}>
+              <option value="">None</option>
+              {#each csvHeaders as header}
+                <option value={header}>{header}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+      {/if}
+
+      <!-- Balance column (optional) -->
+      <div>
+        <label class="label" for="map-balance">
+          Balance column
+          <span class="text-gray-500 font-normal">(optional)</span>
+        </label>
+        <select id="map-balance" class="input" bind:value={mappingBalanceField}>
+          <option value="">None</option>
+          {#each csvHeaders as header}
+            <option value={header}>{header}</option>
+          {/each}
+        </select>
+      </div>
+
+      <!-- Save format -->
+      {#if selectedAccountId}
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            bind:checked={mappingSaveToAccount}
+            class="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-gray-900"
+          />
+          <span class="text-sm text-gray-300">
+            Save this format for <span class="text-gray-100 font-medium">{selectedAccount?.name}</span>
+          </span>
+        </label>
+      {/if}
+
+      {#if error}
+        <p class="text-sm text-red-400">{error}</p>
+      {/if}
+    </div>
   {:else}
     <!-- Preview step -->
     <div class="space-y-4">
@@ -367,8 +717,8 @@
               {#each parsedRows as row, i}
                 <tr
                   class="transition-colors
-										{selected[i] ? 'bg-gray-800/20' : 'opacity-40'}
-										{row.isDuplicate ? 'bg-yellow-950/10' : ''}"
+									{selected[i] ? 'bg-gray-800/20' : 'opacity-40'}
+									{row.isDuplicate ? 'bg-yellow-950/10' : ''}"
                 >
                   <td class="px-3 py-2">
                     <input
@@ -410,7 +760,7 @@
                   </td>
                   <td
                     class="px-3 py-2 text-right tabular-nums font-medium
-											{row.rawType === 'Credit' ? 'text-emerald-400' : 'text-red-400'}"
+										{row.rawType === 'Credit' ? 'text-emerald-400' : 'text-red-400'}"
                   >
                     {row.rawType === "Credit" ? "+" : "-"}{formatCurrency(row.amount)}
                   </td>
@@ -441,11 +791,14 @@
   {/if}
 
   <svelte:fragment slot="footer">
-    {#if step === "preview"}
+    {#if step === "mapping"}
+      <button type="button" class="btn-secondary mr-auto" on:click={() => (step = "upload")}>Back</button>
+      <button type="button" class="btn-primary" on:click={confirmMapping}>Continue</button>
+    {:else if step === "preview"}
       <span class="text-sm text-gray-400 mr-auto">
         {selectedCount} of {parsedRows.length} selected
       </span>
-      <button type="button" class="btn-secondary" on:click={() => (step = "upload")}>Back</button>
+      <button type="button" class="btn-secondary" on:click={() => (step = "mapping")}>Change format</button>
       <button
         type="button"
         class="btn-primary"
