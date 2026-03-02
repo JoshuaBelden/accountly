@@ -7,8 +7,9 @@
 
   let menuOpen = false
 
-  const primaryItem = { href: "/planner", label: "Planner" }
+  const primaryItem = { href: "/dashboard", label: "Dashboard" }
   const secondaryItems = [
+    { href: "/planner", label: "Planner" },
     { href: "/budget", label: "Budget" },
     { href: "/accounts", label: "Accounts" },
     { href: "/bills", label: "Bills" },
@@ -61,9 +62,7 @@
     aria-expanded={menuOpen}
     on:click={() => (menuOpen = !menuOpen)}
     class="min-[1110px]:hidden p-2 rounded-lg transition-colors
-      {consented
-      ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'
-      : 'text-gray-600 cursor-not-allowed'}"
+      {consented ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-800' : 'text-gray-600 cursor-not-allowed'}"
   >
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       {#if menuOpen}
@@ -101,9 +100,7 @@
     disabled={!consented}
     on:click={() => ($searchOpen = true)}
     class="ml-1 p-2 rounded-lg transition-colors
-      {consented
-      ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'
-      : 'text-gray-600 cursor-not-allowed'}"
+      {consented ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-800' : 'text-gray-600 cursor-not-allowed'}"
     aria-label="Search (⌘K)"
   >
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

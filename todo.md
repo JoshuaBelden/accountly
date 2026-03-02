@@ -6,7 +6,6 @@
 - Print / PDF export of the monthly planner or budget summary
 - Recurring transaction detection — scan imported transactions for patterns and suggest converting them to bills
 - Keyboard shortcuts throughout — navigate months, open forms, approve transactions
-- Add Merchant Icons
 
 ## Savings Goals
 
@@ -31,7 +30,3 @@ You have merchant matching. Add a broader rules engine: if description contains 
 ## Account Balance History
 
 Right now accounts have a single current balance. Store a snapshot of each account's balance over time (updated on import or manually) and plot it. Real "net worth over time" instead of a projection.
-
-## Financial Health Score
-
-A simple dashboard widget: savings rate %, debt-to-income ratio, emergency fund coverage (months of expenses), budget adherence rate. Give each a green/yellow/red status. Opinionated but useful.
