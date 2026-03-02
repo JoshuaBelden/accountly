@@ -23,8 +23,9 @@
   let fileInput: HTMLInputElement
 
   let syncPassphrase = $settingsStore.sync?.passphrase ?? ""
-  let syncStatus: "idle" | "uploading" | "downloading" | "success" | "error" = "idle"
+  let syncStatus: "idle" | "checking" | "conflict" | "uploading" | "downloading" | "success" | "error" = "idle"
   let syncMessage = ""
+  let cachedSyncId = ""
 
   function saveSyncPassphrase() {
     settingsStore.setSyncPassphrase(syncPassphrase)
@@ -32,8 +33,31 @@
 
   async function handleUpload() {
     if (!syncPassphrase) return
-    syncStatus = "uploading"
+    syncStatus = "checking"
     syncMessage = ""
+    try {
+      cachedSyncId = await deriveSyncId(syncPassphrase)
+      const checkResponse = await fetch(`/api/sync/${cachedSyncId}`)
+      if (checkResponse.ok) {
+        const checkData = await checkResponse.json()
+        const lastSynced = $settingsStore.sync?.lastSynced
+        if (checkData.updatedAt && (!lastSynced || checkData.updatedAt > lastSynced)) {
+          syncStatus = "conflict"
+          const cloudTime = new Date(checkData.updatedAt).toLocaleString()
+          const localTime = lastSynced ? new Date(lastSynced).toLocaleString() : "never"
+          syncMessage = `Cloud data was last updated ${cloudTime}, but this device last synced ${localTime}. Another device may have made changes that would be overwritten.`
+          return
+        }
+      }
+      await performUpload()
+    } catch (err) {
+      syncStatus = "error"
+      syncMessage = err instanceof Error ? err.message : "Upload failed. Check your connection and try again."
+    }
+  }
+
+  async function performUpload() {
+    syncStatus = "uploading"
     try {
       const envelope = exportAllData(
         $accountsStore,
@@ -48,8 +72,7 @@
       )
       const plaintext = JSON.stringify(envelope)
       const blob = await encryptBlob(plaintext, syncPassphrase)
-      const syncId = await deriveSyncId(syncPassphrase)
-      const response = await fetch(`/api/sync/${syncId}`, {
+      const response = await fetch(`/api/sync/${cachedSyncId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ blob }),
@@ -58,7 +81,8 @@
         const text = await response.text()
         throw new Error(`Server error ${response.status}: ${text}`)
       }
-      settingsStore.markSynced()
+      const result = await response.json()
+      settingsStore.markSynced(result.updatedAt)
       syncStatus = "success"
       syncMessage = "Data uploaded successfully."
     } catch (err) {
@@ -94,7 +118,7 @@
       budgetStore.overrides.set(envelope.budgetOverrides)
       plannerStore.set(envelope.plannerAssignments)
       merchantsStore.set(envelope.merchants ?? [])
-      settingsStore.set({ ...envelope.settings, sync: { passphrase: syncPassphrase, lastSynced: new Date().toISOString() } })
+      settingsStore.set({ ...envelope.settings, sync: { passphrase: syncPassphrase, lastSynced: data.updatedAt ?? new Date().toISOString() } })
       syncStatus = "success"
       syncMessage = "Data downloaded and loaded successfully."
     } catch (err) {
@@ -361,7 +385,15 @@
       </p>
     {/if}
 
-    {#if syncStatus === "success"}
+    {#if syncStatus === "conflict"}
+      <div class="bg-amber-900/30 border border-amber-700 rounded-lg p-3 space-y-3">
+        <p class="text-sm text-amber-300">{syncMessage}</p>
+        <div class="flex gap-2">
+          <button class="btn-primary text-sm py-1.5" on:click={performUpload}>Upload Anyway</button>
+          <button class="btn-secondary text-sm py-1.5" on:click={() => { syncStatus = "idle"; syncMessage = "" }}>Cancel</button>
+        </div>
+      </div>
+    {:else if syncStatus === "success"}
       <div class="bg-emerald-900/30 border border-emerald-700 rounded-lg p-3 text-sm text-emerald-300">
         {syncMessage}
       </div>
@@ -375,12 +407,12 @@
       <button
         class="btn-primary"
         on:click={handleUpload}
-        disabled={!syncPassphrase || syncStatus === "uploading" || syncStatus === "downloading"}
+        disabled={!syncPassphrase || syncStatus === "checking" || syncStatus === "uploading" || syncStatus === "downloading" || syncStatus === "conflict"}
       >
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
         </svg>
-        {syncStatus === "uploading" ? "Uploading..." : "Upload to Cloud"}
+        {syncStatus === "uploading" ? "Uploading..." : syncStatus === "checking" ? "Checking..." : "Upload to Cloud"}
       </button>
       <button
         class="btn-secondary"

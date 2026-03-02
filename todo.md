@@ -1,7 +1,7 @@
 # Todo
 
 ## Nice to Haves
-
+- export data no longer allows selection
 - Clean up claude local settings and build warnings.
 - Banks customize imports
 - Protection against overriting cloud data

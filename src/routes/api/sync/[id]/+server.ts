@@ -32,12 +32,9 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   try {
     const collection = getSyncsCollection()
-    await collection.updateOne(
-      { _id: params.id },
-      { $set: { blob, updatedAt: new Date().toISOString() } },
-      { upsert: true },
-    )
-    return json({ ok: true })
+    const updatedAt = new Date().toISOString()
+    await collection.updateOne({ _id: params.id }, { $set: { blob, updatedAt } }, { upsert: true })
+    return json({ ok: true, updatedAt })
   } catch (err) {
     console.error("[sync] POST failed:", err)
     throw error(500, "Failed to save sync data")

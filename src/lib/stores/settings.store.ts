@@ -25,10 +25,9 @@ function createSettingsStore() {
     update: store.update,
     updatePlannerStartDay: (day: number) =>
       store.update(s => ({ ...s, planner: { ...s.planner, startDayOfMonth: day } })),
-    setSyncPassphrase: (passphrase: string) =>
-      store.update(s => ({ ...s, sync: { ...s.sync, passphrase } })),
-    markSynced: () =>
-      store.update(s => ({ ...s, sync: { ...s.sync!, lastSynced: new Date().toISOString() } })),
+    setSyncPassphrase: (passphrase: string) => store.update(s => ({ ...s, sync: { ...s.sync, passphrase } })),
+    markSynced: (timestamp?: string) =>
+      store.update(s => ({ ...s, sync: { ...s.sync!, lastSynced: timestamp ?? new Date().toISOString() } })),
     reset: () => store.set(defaultSettings),
   }
 }

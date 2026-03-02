@@ -58,7 +58,8 @@
       "Bash(python3 -c \"import json,sys; p=json.load\\(sys.stdin\\); print\\(''main:'', p.get\\(''main''\\)\\); print\\(''module:'', p.get\\(''module''\\)\\); print\\(''exports:'', json.dumps\\(p.get\\(''exports'', {}\\).get\\(''.'', {}\\), indent=2\\)[:500]\\); print\\(''type:'', p.get\\(''type''\\)\\)\")",
       "Bash(python3 -c \"import json,sys; p=json.load\\(sys.stdin\\); print\\(''main:'', p.get\\(''main''\\)\\); print\\(''type:'', p.get\\(''type''\\)\\); exports = p.get\\(''exports'', {}\\); dot = exports.get\\(''.'', {}\\); print\\(''exports[.]:'', json.dumps\\(dot, indent=2\\)[:800]\\)\")",
       "Bash(prettier --version)",
-      "Bash(npm run check)"
+      "Bash(npm run check)",
+      "Bash(npx prettier --write src/routes/api/sync/[id]/+server.ts src/lib/stores/settings.store.ts src/routes/settings/+page.svelte)"
     ],
     "additionalDirectories": [
       "/Users/joshuabelden/Code/accountly/src/lib/components",
