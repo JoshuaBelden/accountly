@@ -34,6 +34,7 @@
   }
 
   $: selectedAccount = transactionAccounts.find(a => a.id === selectedAccountId)
+  $: accountNameById = Object.fromEntries(transactionAccounts.map(a => [a.id, a.name]))
 
   // Cleared transactions for selected account, newest first by date then createdAt
   $: accountTransactions = $transactionsStore
@@ -527,6 +528,15 @@
                     <div class="text-xs text-gray-600 italic truncate">{tx.notes}</div>
                   {/if}
                 </div>
+
+                <!-- Account badge (filtered view only) -->
+                {#if isCategoryFilter && accountNameById[tx.accountId]}
+                  <span
+                    class="text-xs px-2 py-0.5 rounded border flex-shrink-0 text-sky-400 bg-sky-950/30 border-sky-800/50"
+                  >
+                    {accountNameById[tx.accountId]}
+                  </span>
+                {/if}
 
                 <!-- Type badge -->
                 <span

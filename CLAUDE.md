@@ -9,8 +9,6 @@ All code must conform to `.prettierrc`:
 - No parentheses around single arrow function parameters
 - 120 character print width
 
-Run `npx prettier --write` on files you create or modify if possible. When writing code manually, follow these rules exactly.
-
 ## TypeScript Conventions
 
 ### Prefer interfaces over type aliases for object shapes
@@ -108,7 +106,7 @@ Use imperative summary style — write the title as if completing the sentence "
 
 - Title: short, imperative, no period — e.g. `Add bill recurrence validation`, `Fix loan balance calculation`
 - Do not review git history to match previous style
-- Body (optional): explain *why* if the reason isn't obvious from the title, not *what* changed
+- Body (optional): explain _why_ if the reason isn't obvious from the title, not _what_ changed
 - No co-author lines, no generated footers
 
 ```

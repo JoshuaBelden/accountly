@@ -43,7 +43,6 @@
   function getActual(categoryId: string, subcategoryId: string | undefined, transactions: Transaction[]): number {
     return transactions
       .filter(t => {
-        if (t.type === "income") return false
         if (t.splits && t.splits.length > 0) {
           return t.splits.some(
             s => s.categoryId === categoryId && (subcategoryId ? s.subcategoryId === subcategoryId : true),
@@ -52,15 +51,17 @@
         return t.categoryId === categoryId && (subcategoryId ? t.subcategoryId === subcategoryId : true)
       })
       .reduce((sum, t) => {
+        const sign = t.type === "income" ? -1 : 1
         if (t.splits && t.splits.length > 0) {
           return (
             sum +
-            t.splits
-              .filter(s => s.categoryId === categoryId && (subcategoryId ? s.subcategoryId === subcategoryId : true))
-              .reduce((ss, s) => ss + s.amount, 0)
+            sign *
+              t.splits
+                .filter(s => s.categoryId === categoryId && (subcategoryId ? s.subcategoryId === subcategoryId : true))
+                .reduce((ss, s) => ss + s.amount, 0)
           )
         }
-        return sum + t.amount
+        return sum + sign * t.amount
       }, 0)
   }
 

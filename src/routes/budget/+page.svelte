@@ -47,35 +47,36 @@
   function getActualForCategory(cat: BudgetCategory, transactions: Transaction[]): number {
     return transactions
       .filter(t => {
-        if (t.type === "income") return false
         if (t.splits?.length) return t.splits.some(s => s.categoryId === cat.id)
         return t.categoryId === cat.id
       })
       .reduce((sum, t) => {
+        const sign = t.type === "income" ? -1 : 1
         if (t.splits?.length) {
-          return sum + t.splits.filter(s => s.categoryId === cat.id).reduce((ss, s) => ss + s.amount, 0)
+          return sum + sign * t.splits.filter(s => s.categoryId === cat.id).reduce((ss, s) => ss + s.amount, 0)
         }
-        return sum + t.amount
+        return sum + sign * t.amount
       }, 0)
   }
 
   function getActualForSubcategory(categoryId: string, subcategoryId: string, transactions: Transaction[]): number {
     return transactions
       .filter(t => {
-        if (t.type === "income") return false
         if (t.splits?.length) return t.splits.some(s => s.categoryId === categoryId && s.subcategoryId === subcategoryId)
         return t.categoryId === categoryId && t.subcategoryId === subcategoryId
       })
       .reduce((sum, t) => {
+        const sign = t.type === "income" ? -1 : 1
         if (t.splits?.length) {
           return (
             sum +
-            t.splits
-              .filter(s => s.categoryId === categoryId && s.subcategoryId === subcategoryId)
-              .reduce((ss, s) => ss + s.amount, 0)
+            sign *
+              t.splits
+                .filter(s => s.categoryId === categoryId && s.subcategoryId === subcategoryId)
+                .reduce((ss, s) => ss + s.amount, 0)
           )
         }
-        return sum + t.amount
+        return sum + sign * t.amount
       }, 0)
   }
 
