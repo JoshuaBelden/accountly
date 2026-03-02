@@ -20,6 +20,7 @@ export async function exportToFile(envelope: ExportEnvelope): Promise<void> {
       return
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") return
+      console.warn("showSaveFilePicker failed, falling back to legacy download:", error)
       // Fall through to legacy download on other errors
     }
   }
