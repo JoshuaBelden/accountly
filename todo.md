@@ -2,6 +2,8 @@
 
 ## Nice to Haves
 
+- Allow assigning a merchant to bills
+- Allow ignoring transactions from budget calculations
 - Notes on months — a simple text field per month to journal what happened ("started new job", "car repair")
 - Print / PDF export of the monthly planner or budget summary
 - Recurring transaction detection — scan imported transactions for patterns and suggest converting them to bills
