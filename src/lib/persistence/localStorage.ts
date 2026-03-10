@@ -9,6 +9,7 @@ import type {
   PlannedBillAssignment,
   Transaction,
 } from "$lib/types"
+import type { TaxProfile, WithholdingEntry } from "$lib/types/tax"
 
 const PREFIX = "accountly:"
 
@@ -26,6 +27,8 @@ export interface ExportEnvelope {
   plannerAssignments: PlannedBillAssignment[]
   merchants: Merchant[]
   settings: AppSettings
+  taxProfile?: TaxProfile | null
+  withholdings?: WithholdingEntry[]
 }
 
 export function loadFromStorage<T>(key: string, fallback: T): T {
@@ -64,6 +67,8 @@ export function exportAllData(
   plannerAssignments: PlannedBillAssignment[],
   merchants: Merchant[],
   settings: AppSettings,
+  taxProfile?: TaxProfile | null,
+  withholdings?: WithholdingEntry[],
 ): ExportEnvelope {
   return {
     version: CURRENT_VERSION,
@@ -77,6 +82,8 @@ export function exportAllData(
     plannerAssignments,
     merchants,
     settings,
+    taxProfile,
+    withholdings,
   }
 }
 

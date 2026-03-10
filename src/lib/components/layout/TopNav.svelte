@@ -7,15 +7,13 @@
 
   let menuOpen = false
 
-  const primaryItem = { href: "/dashboard", label: "Dashboard" }
+  const primaryItem = { href: "/planner", label: "Planner" }
   const secondaryItems = [
-    { href: "/planner", label: "Planner" },
     { href: "/budget", label: "Budget" },
     { href: "/accounts", label: "Accounts" },
     { href: "/bills", label: "Bills" },
     { href: "/merchants", label: "Merchants" },
     { href: "/transactions", label: "Transactions" },
-    { href: "/networth", label: "Net Worth" },
     { href: "/tools", label: "Tools" },
   ]
 

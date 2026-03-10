@@ -5,6 +5,57 @@
   </div>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <a href="/tools/financial-health" class="card hover:border-indigo-700/60 hover:bg-gray-800/60 transition-colors group">
+      <div class="flex items-start gap-4">
+        <div class="w-10 h-10 rounded-lg bg-indigo-900/60 flex items-center justify-center shrink-0 group-hover:bg-indigo-800/60 transition-colors">
+          <svg class="w-5 h-5 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        <div>
+          <div class="font-medium text-gray-100 group-hover:text-white transition-colors">Financial Health</div>
+          <div class="text-sm text-gray-400 mt-0.5 leading-relaxed">
+            Savings rate, debt-to-income, emergency fund coverage, and budget adherence at a glance.
+          </div>
+        </div>
+      </div>
+    </a>
+
+    <a href="/tools/tax-planner" class="card hover:border-indigo-700/60 hover:bg-gray-800/60 transition-colors group">
+      <div class="flex items-start gap-4">
+        <div class="w-10 h-10 rounded-lg bg-amber-900/60 flex items-center justify-center shrink-0 group-hover:bg-amber-800/60 transition-colors">
+          <svg class="w-5 h-5 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div>
+          <div class="font-medium text-gray-100 group-hover:text-white transition-colors">Tax Planner</div>
+          <div class="text-sm text-gray-400 mt-0.5 leading-relaxed">
+            Estimate your annual tax liability, track withholdings, and see per-paycheck recommendations.
+          </div>
+        </div>
+      </div>
+    </a>
+
+    <a href="/tools/net-worth" class="card hover:border-indigo-700/60 hover:bg-gray-800/60 transition-colors group">
+      <div class="flex items-start gap-4">
+        <div class="w-10 h-10 rounded-lg bg-cyan-900/60 flex items-center justify-center shrink-0 group-hover:bg-cyan-800/60 transition-colors">
+          <svg class="w-5 h-5 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+          </svg>
+        </div>
+        <div>
+          <div class="font-medium text-gray-100 group-hover:text-white transition-colors">Net Worth</div>
+          <div class="text-sm text-gray-400 mt-0.5 leading-relaxed">
+            Track your total net worth with asset and liability breakdowns plus a forecast timeline.
+          </div>
+        </div>
+      </div>
+    </a>
+
     <a href="/tools/subscriptions" class="card hover:border-indigo-700/60 hover:bg-gray-800/60 transition-colors group">
       <div class="flex items-start gap-4">
         <div class="w-10 h-10 rounded-lg bg-violet-900/60 flex items-center justify-center shrink-0 group-hover:bg-violet-800/60 transition-colors">

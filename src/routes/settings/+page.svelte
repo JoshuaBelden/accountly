@@ -10,6 +10,7 @@
   import { plannerStore } from "$lib/stores/planner.store"
   import { settingsStore } from "$lib/stores/settings.store"
   import { merchantsStore } from "$lib/stores/merchants.store"
+  import { taxProfileStore, withholdingsStore } from "$lib/stores/tax.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
   import type { BudgetCategory, MonthlyBudgetOverride } from "$lib/types"
   import { exportToFile, importFromFile } from "$lib/utils/export"
@@ -69,6 +70,8 @@
         $plannerStore,
         $merchantsStore,
         $settingsStore,
+        $taxProfileStore,
+        $withholdingsStore,
       )
       const plaintext = JSON.stringify(envelope)
       const blob = await encryptBlob(plaintext, syncPassphrase)
@@ -118,6 +121,8 @@
       budgetStore.overrides.set(envelope.budgetOverrides)
       plannerStore.set(envelope.plannerAssignments)
       merchantsStore.set(envelope.merchants ?? [])
+      if (envelope.taxProfile !== undefined) taxProfileStore.set(envelope.taxProfile)
+      if (envelope.withholdings !== undefined) withholdingsStore.set(envelope.withholdings)
       settingsStore.set({ ...envelope.settings, sync: { passphrase: syncPassphrase, lastSynced: data.updatedAt ?? new Date().toISOString() } })
       syncStatus = "success"
       syncMessage = "Data downloaded and loaded successfully."
@@ -143,6 +148,8 @@
       $plannerStore,
       $merchantsStore,
       $settingsStore,
+      $taxProfileStore,
+      $withholdingsStore,
     )
     settingsStore.update(s => ({ ...s, lastExported: new Date().toISOString() }))
     await exportToFile(envelope)
@@ -164,6 +171,8 @@
       budgetStore.overrides.set(envelope.budgetOverrides)
       plannerStore.set(envelope.plannerAssignments)
       merchantsStore.set(envelope.merchants ?? [])
+      if (envelope.taxProfile !== undefined) taxProfileStore.set(envelope.taxProfile)
+      if (envelope.withholdings !== undefined) withholdingsStore.set(envelope.withholdings)
       settingsStore.set(envelope.settings)
       importSuccess = true
     } catch (err) {
@@ -187,6 +196,8 @@
     budgetStore.overrides.set([])
     plannerStore.set([])
     merchantsStore.set([])
+    taxProfileStore.clear()
+    withholdingsStore.set([])
     settingsStore.reset()
   }
 

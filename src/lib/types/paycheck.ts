@@ -10,7 +10,10 @@ export interface SemimonthlyDays {
 export interface Paycheck {
   id: string
   name: string
+  /** Take-home amount per paycheck after all employer withholdings and deductions. */
   expectedAmount: number
+  /** Gross (pre-tax) amount per paycheck, if known. Used by the Tax Planner. When absent, expectedAmount is used as a fallback. */
+  grossAmount?: number
   frequency: PayFrequency
   incomeType?: IncomeType
   accountId: string

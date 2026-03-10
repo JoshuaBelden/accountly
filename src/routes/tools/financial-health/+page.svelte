@@ -4,7 +4,7 @@
 
 <div class="max-w-4xl mx-auto space-y-6">
   <div>
-    <h1 class="text-2xl font-bold text-gray-100">Dashboard</h1>
+    <h1 class="text-2xl font-bold text-gray-100">Financial Health</h1>
     <p class="text-sm text-gray-400 mt-1">Financial health at a glance</p>
   </div>
 

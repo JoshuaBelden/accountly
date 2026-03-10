@@ -4,7 +4,7 @@
   import { formatCurrencyCompact } from "$lib/utils/currency"
 </script>
 
-<a href="/networth" class="flex items-center gap-4 group">
+<a href="/tools/net-worth" class="flex items-center gap-4 group">
   <div class="text-right">
     <div class="text-xs text-gray-500 uppercase tracking-wide">Liquid</div>
     <div class="text-sm font-semibold text-gray-100 tabular-nums">

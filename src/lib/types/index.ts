@@ -1,4 +1,5 @@
 export * from "./account"
+export * from "./tax"
 export * from "./bill"
 export * from "./budget"
 export * from "./merchant"

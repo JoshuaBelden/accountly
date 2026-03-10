@@ -60,6 +60,7 @@
   let weeklyAnchorDate = editPaycheck?.weeklyAnchorDate ?? todayISO()
   let incomeType: IncomeType = editPaycheck?.incomeType ?? "paycheck"
   let paycheckHints = editPaycheck?.hints ?? ""
+  let paycheckGrossAmount: number | null = editPaycheck?.grossAmount ?? null
 
   function now() {
     return new Date().toISOString()
@@ -144,6 +145,7 @@
       monthlyDay: paycheckFrequency === "monthly" ? monthlyDay : undefined,
       weeklyAnchorDate: paycheckFrequency === "weekly" ? weeklyAnchorDate : undefined,
       hints: paycheckHints || undefined,
+      grossAmount: paycheckGrossAmount ?? undefined,
     }
 
     if (editPaycheck) {
@@ -286,9 +288,29 @@
         placeholder={incomeType === "other" ? "e.g. Rental Income" : "e.g. Main Job"}
       />
     </div>
-    <div>
-      <label class="label" for="pc-amount">Expected Amount ($)</label>
-      <input id="pc-amount" class="input" type="number" step="0.01" bind:value={paycheckAmount} required />
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="label" for="pc-amount">Take-Home Amount ($)</label>
+        <input id="pc-amount" class="input" type="number" step="0.01" bind:value={paycheckAmount} required />
+        <p class="mt-1 text-xs text-gray-500">What actually deposits into your account.</p>
+      </div>
+      {#if incomeType === "paycheck"}
+        <div>
+          <label class="label" for="pc-gross">Gross Amount ($) <span class="text-gray-600 font-normal">(optional)</span></label>
+          <input
+            id="pc-gross"
+            class="input"
+            type="number"
+            step="0.01"
+            value={paycheckGrossAmount ?? ""}
+            on:change={event => {
+              const val = parseFloat((event.target as HTMLInputElement).value)
+              paycheckGrossAmount = isNaN(val) || (event.target as HTMLInputElement).value.trim() === "" ? null : val
+            }}
+          />
+          <p class="mt-1 text-xs text-gray-500">Pre-tax pay. Used by the Tax Planner.</p>
+        </div>
+      {/if}
     </div>
     <div>
       <label class="label" for="pc-freq">Frequency</label>
