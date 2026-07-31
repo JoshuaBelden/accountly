@@ -20,9 +20,10 @@
   import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
-  import type { Account, AssetAccount, InvestmentAccount, LoanAccount, Paycheck } from "$lib/types"
+  import type { Account, AssetAccount, InvestmentAccount, LoanAccount, Paycheck, PlannedPaymentAssignment } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
   import { findMatchingPayDate } from "$lib/utils/date"
+  import { applyBillLink, applyLoanLink, matchBillByHints, matchLoanByHints, matchPaycheckByHints } from "$lib/utils/hintMatching"
   import { onMount } from "svelte"
   import { get } from "svelte/store"
 
@@ -104,62 +105,53 @@
     other: "Other",
   }
 
-  /** Re-tests all transactions against bill and paycheck hint patterns, updating any that match. */
+  /** Re-tests all transactions against bill, loan, and paycheck hint patterns, updating any that match. */
   function reapplyHints() {
     const transactions = get(transactionsStore)
     const bills = get(billsStore)
+    const loans = get(loanAccounts)
     const paychecks = get(paychecksStore)
     let matchCount = 0
 
     for (const transaction of transactions) {
-      let matched = false
+      const bill = matchBillByHints(transaction.description, bills)
+      const loan = !bill ? matchLoanByHints(transaction.description, loans) : undefined
 
-      for (const bill of bills) {
-        if (!bill.hints) continue
-        try {
-          if (new RegExp(bill.hints, "i").test(transaction.description)) {
-            const month = transaction.date.substring(0, 7)
-            plannerStore.clearTransactionLink(transaction.id)
-            const assignments = plannerStore.getForMonth(month)
-            const assignment = assignments.find(a => a.billId === bill.id)
-            if (assignment) plannerStore.linkTransaction(assignment.id, transaction.id)
-            transactionsStore.update(transaction.id, {
-              billId: bill.id,
-              paycheckId: undefined,
-              type: "bill_payment",
-              plannerMonth: month,
-            })
-            matched = true
-            matchCount++
-            break
-          }
-        } catch {
-          /* invalid regex — skip */
+      if (bill || loan) {
+        const month = transaction.date.substring(0, 7)
+        plannerStore.clearTransactionLink(transaction.id)
+        const assignments = plannerStore.getForMonth(month)
+        const assignment = assignments.find(a => (bill ? a.billId === bill.id : a.loanAccountId === loan!.id))
+        if (assignment) {
+          plannerStore.linkTransaction(assignment.id, transaction.id)
+        } else {
+          const newAssignment: PlannedPaymentAssignment = bill
+            ? { id: crypto.randomUUID(), plannerMonth: month, billId: bill.id, transactionId: transaction.id }
+            : { id: crypto.randomUUID(), plannerMonth: month, loanAccountId: loan!.id, transactionId: transaction.id }
+          plannerStore.assign(newAssignment)
         }
+        transactionsStore.update(transaction.id, {
+          ...(bill ? applyBillLink(bill) : applyLoanLink(loan!)),
+          paycheckId: undefined,
+          plannerMonth: month,
+        })
+        matchCount++
+        continue
       }
 
-      if (!matched) {
-        for (const paycheck of paychecks) {
-          if (!paycheck.hints) continue
-          try {
-            if (new RegExp(paycheck.hints, "i").test(transaction.description)) {
-              const payDate = findMatchingPayDate(paycheck, transaction.date)
-              transactionsStore.update(transaction.id, {
-                paycheckId: paycheck.id,
-                billId: undefined,
-                type: "income",
-                clearedStatus: "cleared",
-                plannedPaycheckDate: payDate,
-                plannerMonth: payDate ? payDate.substring(0, 7) : transaction.date.substring(0, 7),
-              })
-              matched = true
-              matchCount++
-              break
-            }
-          } catch {
-            /* invalid regex — skip */
-          }
-        }
+      const paycheck = matchPaycheckByHints(transaction.description, paychecks)
+      if (paycheck) {
+        const payDate = findMatchingPayDate(paycheck, transaction.date)
+        transactionsStore.update(transaction.id, {
+          paycheckId: paycheck.id,
+          billId: undefined,
+          loanAccountId: undefined,
+          type: "income",
+          clearedStatus: "cleared",
+          plannedPaycheckDate: payDate,
+          plannerMonth: payDate ? payDate.substring(0, 7) : transaction.date.substring(0, 7),
+        })
+        matchCount++
       }
     }
 

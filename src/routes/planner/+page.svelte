@@ -4,13 +4,20 @@
   import EmptyState from "$lib/components/shared/EmptyState.svelte"
   import { billsStore } from "$lib/stores/bills.store"
   import { budgetStore } from "$lib/stores/budget.store"
+  import { loanAccounts } from "$lib/stores/accounts.store"
   import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
   import type { BudgetCategory, MonthlyBudgetOverride } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
   import { addMonths, currentMonth, formatMonth, getPayDaysInMonth } from "$lib/utils/date"
-  import { computeCategorySpendingGroups, computeDiscretionaryBudget, groupBillsByPayPeriod } from "$lib/utils/planner"
+  import {
+    computeBudgetTotal,
+    computeCategorySpendingGroups,
+    groupPaymentsByPayPeriod,
+    resolvePaymentStatus,
+    type PayPeriodPaymentItem,
+  } from "$lib/utils/planner"
 
   let month = currentMonth()
 
@@ -39,6 +46,12 @@
     .slice()
     .sort((a, b) => (a.dueDayOfMonth ?? 99) - (b.dueDayOfMonth ?? 99))
 
+  // Monthly loan payments — same monthly-only cadence the planner already applies to bills
+  $: monthlyLoans = $loanAccounts
+    .filter(l => l.paymentFrequency === "monthly")
+    .slice()
+    .sort((a, b) => a.paymentDueDay - b.paymentDueDay)
+
   $: monthAssignments = $plannerStore.filter(a => a.plannerMonth === month)
   $: monthTransactions = $transactionsStore.filter(t => t.plannerMonth === month || t.date.startsWith(month))
 
@@ -60,19 +73,23 @@
   })
   $: totalIncome = incomeItems.reduce((sum, item) => sum + item.amount, 0)
 
-  // Bill line items for summary
-  $: billItems = monthlyBills.map(bill => {
-    const assignment = monthAssignments.find(a => a.billId === bill.id) ?? null
-    const linkedTx = assignment?.transactionId ? monthTransactions.find(t => t.id === assignment.transactionId) : null
-    const isPaid = linkedTx?.clearedStatus === "cleared" || assignment?.manuallyPaid === true
-    const amount =
-      linkedTx?.clearedStatus === "cleared" && linkedTx ? linkedTx.amount : (assignment?.overrideAmount ?? bill.amount)
-    return { bill, isPaid, amount }
-  })
-  $: totalBills = billItems.reduce((sum, item) => sum + item.amount, 0)
+  // Combined bill + loan payment line items for summary, merged into one list (not a separate section)
+  $: paymentItems = [
+    ...monthlyBills.map((bill): PayPeriodPaymentItem => {
+      const assignment = monthAssignments.find(a => a.billId === bill.id) ?? null
+      const status = resolvePaymentStatus(bill.id, "billId", bill.amount, assignment, monthTransactions, month)
+      return { id: bill.id, name: bill.name, dueDayOfMonth: bill.dueDayOfMonth, kind: "bill", source: bill, isPaid: status.isPaid, amount: status.amount }
+    }),
+    ...monthlyLoans.map((loan): PayPeriodPaymentItem => {
+      const assignment = monthAssignments.find(a => a.loanAccountId === loan.id) ?? null
+      const status = resolvePaymentStatus(loan.id, "loanAccountId", loan.minimumPayment, assignment, monthTransactions, month)
+      return { id: loan.id, name: loan.name, dueDayOfMonth: loan.paymentDueDay, kind: "loan", source: loan, isPaid: status.isPaid, amount: status.amount }
+    }),
+  ]
+  $: totalPayments = paymentItems.reduce((sum, item) => sum + item.amount, 0)
 
-  // Bills grouped by which paycheck actually covers them, so shortfalls within the month are visible
-  $: payPeriodBuckets = groupBillsByPayPeriod($paychecksStore, incomeItems, billItems, month)
+  // Bills & loans grouped by which paycheck actually covers them, so shortfalls within the month are visible
+  $: payPeriodBuckets = groupPaymentsByPayPeriod($paychecksStore, incomeItems, paymentItems, month)
 
   // Budget categories, for the discretionary portion of the spending forecast
   let categories: BudgetCategory[] = []
@@ -80,18 +97,18 @@
   budgetStore.categories.subscribe((c: BudgetCategory[]) => (categories = c))
   budgetStore.overrides.subscribe((o: MonthlyBudgetOverride[]) => (overrides = o))
 
-  // Planned discretionary spending — budgeted categories/subcategories not already covered by a Bill
-  $: discretionaryBudgetTotal = computeDiscretionaryBudget($billsStore, categories, overrides, month)
+  // Total budgeted spending across every category, for the month
+  $: budgetTotal = computeBudgetTotal(categories, overrides, month)
 
-  $: netCashFlow = totalIncome - totalBills - discretionaryBudgetTotal
+  $: netCashFlow = totalIncome - totalPayments - budgetTotal
 
-  // Transactions with no category and no splits — the "holes" that weren't planned for at all
+  // Transactions with no category and no splits, not already tracked as a bill/loan payment — the "holes" that weren't planned for at all
   $: uncategorizedTransactions = monthTransactions
-    .filter(t => t.type !== "income" && !t.categoryId && !t.splits?.length)
+    .filter(t => t.type !== "income" && t.type !== "bill_payment" && t.type !== "loan_payment" && !t.categoryId && !t.splits?.length)
     .sort((a, b) => b.date.localeCompare(a.date))
   $: uncategorizedSpend = uncategorizedTransactions.reduce((sum, t) => sum + t.amount, 0)
 
-  $: forecastNet = totalIncome - totalBills - discretionaryBudgetTotal - uncategorizedSpend
+  $: forecastNet = totalIncome - totalPayments - budgetTotal - uncategorizedSpend
 
   // Every budget category with its subcategories' cleared spend so far this month, for the watch-list below the header
   $: categorySpendingGroups = computeCategorySpendingGroups(categories, monthTransactions, overrides, month)
@@ -128,12 +145,12 @@
           <span class="w-32 text-right tabular-nums text-emerald-400">+{formatCurrency(totalIncome)}</span>
         </div>
         <div class="flex items-center text-sm">
-          <span class="flex-1 text-gray-400">Total Bills</span>
-          <span class="w-32 text-right tabular-nums text-red-400">-{formatCurrency(totalBills)}</span>
+          <span class="flex-1 text-gray-400">Bills & Loans</span>
+          <span class="w-32 text-right tabular-nums text-red-400">-{formatCurrency(totalPayments)}</span>
         </div>
         <div class="flex items-center text-sm">
           <span class="flex-1 text-gray-400">Total Budgeted</span>
-          <span class="w-32 text-right tabular-nums text-amber-400">-{formatCurrency(discretionaryBudgetTotal)}</span>
+          <span class="w-32 text-right tabular-nums text-amber-400">-{formatCurrency(budgetTotal)}</span>
         </div>
         <div class="flex items-center text-sm font-semibold border-t border-gray-700 pt-3">
           <span class="flex-1 text-gray-200">Net</span>
@@ -144,7 +161,7 @@
       </div>
     </div>
 
-    <!-- Income and Bills, split by pay period -->
+    <!-- Income and Bills & Loans, split by pay period -->
     {#if payPeriodBuckets.length === 0}
       <div class="card">
         <p class="text-sm text-gray-500">No pay days found in {formatMonth(month)}.</p>
@@ -166,12 +183,12 @@
           <div class="text-lg font-bold text-emerald-400 tabular-nums">+{formatCurrency(totalIncome)}</div>
         </div>
         <div>
-          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Bills</div>
-          <div class="text-lg font-bold text-red-400 tabular-nums">-{formatCurrency(totalBills)}</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Bills & Loans</div>
+          <div class="text-lg font-bold text-red-400 tabular-nums">-{formatCurrency(totalPayments)}</div>
         </div>
         <div>
           <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Budgeted</div>
-          <div class="text-lg font-bold text-amber-400 tabular-nums">-{formatCurrency(discretionaryBudgetTotal)}</div>
+          <div class="text-lg font-bold text-amber-400 tabular-nums">-{formatCurrency(budgetTotal)}</div>
         </div>
         <div>
           <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Uncategorized</div>

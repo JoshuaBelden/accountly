@@ -1,13 +1,13 @@
 <script lang="ts">
   import Modal from "$lib/components/shared/Modal.svelte"
-  import { accountsStore, checkingAccounts, savingsAccounts } from "$lib/stores/accounts.store"
+  import { accountsStore, checkingAccounts, loanAccounts, savingsAccounts } from "$lib/stores/accounts.store"
   import { billsStore } from "$lib/stores/bills.store"
   import { budgetStore } from "$lib/stores/budget.store"
   import { merchantsStore } from "$lib/stores/merchants.store"
   import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
-  import type { Bill, CheckingAccount, CsvFormat, Merchant, Paycheck, PlannedBillAssignment, SavingsAccount, Transaction } from "$lib/types"
+  import type { Bill, CheckingAccount, CsvFormat, LoanAccount, Merchant, Paycheck, PlannedPaymentAssignment, SavingsAccount, Transaction } from "$lib/types"
   import {
     autoDetectFormat,
     detectDateFormat,
@@ -17,6 +17,7 @@
   } from "$lib/utils/csvImport"
   import { formatCurrency } from "$lib/utils/currency"
   import { findMatchingPayDate, formatDateShort, todayISO } from "$lib/utils/date"
+  import { applyBillLink, applyLoanLink, matchBillByHints, matchCategoryByHints, matchLoanByHints, matchMerchantByHints, matchPaycheckByHints } from "$lib/utils/hintMatching"
   import { createEventDispatcher } from "svelte"
   import { get } from "svelte/store"
 
@@ -28,6 +29,7 @@
   type RowWithMeta = ParsedCsvRow & {
     isDuplicate: boolean
     matchedBill?: Bill
+    matchedLoan?: LoanAccount
     matchedPaycheck?: Paycheck
     matchedMerchant?: Merchant
     matchedCategoryLabel?: string
@@ -265,23 +267,31 @@
   function enrichRows(rows: ParsedCsvRow[]): RowWithMeta[] {
     const existing = get(transactionsStore).filter(transaction => transaction.accountId === selectedAccountId)
     const existingKeys = new Set(existing.map(transaction => `${transaction.date}|${transaction.description}|${transaction.amount}`))
+    const bills = get(billsStore)
+    const loans = get(loanAccounts)
+    const paychecks = get(paychecksStore)
+    const merchants = get(merchantsStore)
+    const categories = get(budgetStore.categories)
     return rows.map(row => {
-      const matchedBill = matchBill(row.description)
-      const matchedPaycheck = !matchedBill && row.rawType === "Credit" ? matchPaycheck(row.description) : undefined
-      const matchedMerchant = matchMerchant(row.description)
+      const matchedBill = matchBillByHints(row.description, bills)
+      const matchedLoan = !matchedBill ? matchLoanByHints(row.description, loans) : undefined
+      const matchedPaycheck =
+        !matchedBill && !matchedLoan && row.rawType === "Credit" ? matchPaycheckByHints(row.description, paychecks) : undefined
+      const matchedMerchant = matchMerchantByHints(row.description, merchants)
       let matchedCategoryLabel: string | undefined
-      if (matchedBill?.categoryId) {
-        matchedCategoryLabel = getCategoryLabel(matchedBill.categoryId, matchedBill.subcategoryId)
+      if (matchedBill || matchedLoan) {
+        // Bills and loans never carry a budget category — payments are tracked entirely via the bill/loan itself.
       } else if (matchedMerchant?.categoryId) {
         matchedCategoryLabel = getCategoryLabel(matchedMerchant.categoryId, matchedMerchant.subcategoryId)
       } else if (!matchedPaycheck) {
-        const catMatch = matchCategory(row.description)
+        const catMatch = matchCategoryByHints(row.description, categories)
         if (catMatch) matchedCategoryLabel = getCategoryLabel(catMatch.categoryId, catMatch.subcategoryId)
       }
       return {
         ...row,
         isDuplicate: existingKeys.has(`${row.date}|${row.description}|${row.amount}`),
         matchedBill,
+        matchedLoan,
         matchedPaycheck,
         matchedMerchant,
         matchedCategoryLabel,
@@ -320,65 +330,6 @@
     selected = parsedRows.map(row => !row.isDuplicate)
   }
 
-  function matchBill(description: string): Bill | undefined {
-    const bills = get(billsStore)
-    for (const bill of bills) {
-      if (!bill.hints) continue
-      try {
-        if (new RegExp(bill.hints, "i").test(description)) return bill
-      } catch {
-        /* invalid regex — skip */
-      }
-    }
-    return undefined
-  }
-
-  function matchPaycheck(description: string): Paycheck | undefined {
-    const paychecks = get(paychecksStore)
-    for (const paycheck of paychecks) {
-      if (!paycheck.hints) continue
-      try {
-        if (new RegExp(paycheck.hints, "i").test(description)) return paycheck
-      } catch {
-        /* invalid regex — skip */
-      }
-    }
-    return undefined
-  }
-
-  function matchMerchant(description: string): Merchant | undefined {
-    const merchants = get(merchantsStore)
-    for (const merchant of merchants) {
-      try {
-        if (new RegExp(merchant.hints, "i").test(description)) return merchant
-      } catch {
-        /* invalid regex — skip */
-      }
-    }
-    return undefined
-  }
-
-  function matchCategory(description: string): { categoryId: string; subcategoryId?: string } | undefined {
-    const categories = get(budgetStore.categories)
-    for (const cat of categories) {
-      for (const sub of cat.subcategories) {
-        if (!sub.hints) continue
-        try {
-          if (new RegExp(sub.hints, "i").test(description)) return { categoryId: cat.id, subcategoryId: sub.id }
-        } catch {
-          /* invalid regex — skip */
-        }
-      }
-      if (!cat.hints) continue
-      try {
-        if (new RegExp(cat.hints, "i").test(description)) return { categoryId: cat.id }
-      } catch {
-        /* invalid regex — skip */
-      }
-    }
-    return undefined
-  }
-
   function getCategoryLabel(categoryId: string, subcategoryId?: string): string {
     const categories = get(budgetStore.categories)
     const cat = categories.find(c => c.id === categoryId)
@@ -400,10 +351,13 @@
       if (!selected[i]) return
 
       const bill = row.matchedBill
+      const loan = row.matchedLoan
       const paycheck = row.matchedPaycheck
       const merchant = row.matchedMerchant
-      const categoryMatch = !bill && !paycheck && !merchant?.categoryId ? matchCategory(row.description) : undefined
+      const categoryMatch =
+        !bill && !loan && !paycheck && !merchant?.categoryId ? matchCategoryByHints(row.description, get(budgetStore.categories)) : undefined
       const paycheckPayDate = paycheck ? findMatchingPayDate(paycheck, row.date) : undefined
+      const linkFields = bill ? applyBillLink(bill) : loan ? applyLoanLink(loan) : null
 
       const transaction: Transaction = {
         id: crypto.randomUUID(),
@@ -412,15 +366,16 @@
         name: merchant?.name,
         merchantId: merchant?.id,
         amount: row.amount,
-        type: bill ? "bill_payment" : paycheck || row.rawType === "Credit" ? "income" : "expense",
-        accountId: bill?.accountId ?? selectedAccountId,
+        type: linkFields?.type ?? (paycheck || row.rawType === "Credit" ? "income" : "expense"),
+        accountId: bill?.accountId ?? loan?.paymentAccountId ?? selectedAccountId,
         clearedStatus: "cleared",
         imported: true,
-        billId: bill?.id,
+        billId: linkFields?.billId,
+        loanAccountId: linkFields?.loanAccountId,
         paycheckId: paycheck?.id,
         plannedPaycheckDate: paycheckPayDate,
-        categoryId: bill?.categoryId ?? merchant?.categoryId ?? categoryMatch?.categoryId,
-        subcategoryId: bill?.subcategoryId ?? merchant?.subcategoryId ?? categoryMatch?.subcategoryId,
+        categoryId: linkFields?.categoryId ?? merchant?.categoryId ?? categoryMatch?.categoryId,
+        subcategoryId: linkFields?.subcategoryId ?? merchant?.subcategoryId ?? categoryMatch?.subcategoryId,
         plannerMonth: paycheckPayDate ? paycheckPayDate.substring(0, 7) : row.date.substring(0, 7),
         createdAt: now,
         updatedAt: now,
@@ -428,16 +383,14 @@
       transactionsStore.add(transaction)
 
       // Link to planner assignment, creating one if needed
-      if (bill) {
+      if (bill || loan) {
         const month = row.date.substring(0, 7)
         const assignments = plannerStore.getForMonth(month)
-        let assignment = assignments.find(a => a.billId === bill.id)
+        let assignment = assignments.find(a => (bill ? a.billId === bill.id : a.loanAccountId === loan!.id))
         if (!assignment) {
-          const newAssignment: PlannedBillAssignment = {
-            id: crypto.randomUUID(),
-            plannerMonth: month,
-            billId: bill.id,
-          }
+          const newAssignment: PlannedPaymentAssignment = bill
+            ? { id: crypto.randomUUID(), plannerMonth: month, billId: bill.id }
+            : { id: crypto.randomUUID(), plannerMonth: month, loanAccountId: loan!.id }
           plannerStore.assign(newAssignment)
           assignment = newAssignment
         }
@@ -734,6 +687,9 @@
                     <span class="block truncate" title={row.description}>{row.description}</span>
                     {#if row.matchedBill}
                       <span class="text-xs text-indigo-400">Bill: {row.matchedBill.name}</span>
+                    {/if}
+                    {#if row.matchedLoan}
+                      <span class="text-xs text-violet-400">Loan: {row.matchedLoan.name}</span>
                     {/if}
                     {#if row.matchedPaycheck}
                       <span class="text-xs text-emerald-400">Income: {row.matchedPaycheck.name}</span>

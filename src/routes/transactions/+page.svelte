@@ -6,16 +6,17 @@
   import ImportTransactionsModal from "$lib/components/transactions/ImportTransactionsModal.svelte"
   import TransactionForm from "$lib/components/transactions/TransactionForm.svelte"
   import TransactionSplitEditor from "$lib/components/transactions/TransactionSplitEditor.svelte"
-  import { checkingAccounts, savingsAccounts } from "$lib/stores/accounts.store"
+  import { checkingAccounts, loanAccounts, savingsAccounts } from "$lib/stores/accounts.store"
   import { billsStore } from "$lib/stores/bills.store"
   import { budgetStore } from "$lib/stores/budget.store"
   import { merchantsStore } from "$lib/stores/merchants.store"
   import { paychecksStore } from "$lib/stores/paychecks.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
-  import type { BudgetCategory, Transaction } from "$lib/types"
+  import type { BudgetCategory, PlannedPaymentAssignment, Transaction } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
   import { formatDateShort } from "$lib/utils/date"
+  import { applyBillLink, applyLoanLink } from "$lib/utils/hintMatching"
   import { onMount } from "svelte"
 
   let pageSize = 20
@@ -55,7 +56,14 @@
       txs = txs.filter(t => t.plannerMonth === filterMonth || t.date.startsWith(filterMonth))
     }
     if (filterUncategorized) {
-      txs = txs.filter(t => t.type !== "income" && !t.categoryId && (!t.splits || t.splits.length === 0))
+      txs = txs.filter(
+        t =>
+          t.type !== "income" &&
+          t.type !== "bill_payment" &&
+          t.type !== "loan_payment" &&
+          !t.categoryId &&
+          (!t.splits || t.splits.length === 0),
+      )
     } else if (filterCategoryId) {
       txs = txs.filter(t => {
         if (t.splits?.length) {
@@ -149,6 +157,7 @@
 
   $: sortedPaychecks = [...$paychecksStore].sort((a, b) => a.name.localeCompare(b.name))
   $: sortedBills = [...$billsStore].sort((a, b) => a.name.localeCompare(b.name))
+  $: sortedLoans = [...$loanAccounts].sort((a, b) => a.name.localeCompare(b.name))
   $: sortedBudgetCategories = [...budgetCategories].sort((a, b) => a.name.localeCompare(b.name))
 
   function getCategoryLabel(categoryId?: string, subcategoryId?: string): string {
@@ -180,18 +189,42 @@
     plannerStore.clearTransactionLink(txId)
 
     if (billId) {
+      const bill = $billsStore.find(b => b.id === billId)
+      if (!bill) return
       const month = txDate.substring(0, 7)
       const assignments = plannerStore.getForMonth(month)
       const assignment = assignments.find(a => a.billId === billId)
-      if (assignment) plannerStore.linkTransaction(assignment.id, txId)
-      transactionsStore.update(txId, {
-        billId,
-        paycheckId: undefined,
-        type: "bill_payment",
-        plannerMonth: month,
-      })
+      if (assignment) {
+        plannerStore.linkTransaction(assignment.id, txId)
+      } else {
+        const newAssignment: PlannedPaymentAssignment = { id: crypto.randomUUID(), plannerMonth: month, billId, transactionId: txId }
+        plannerStore.assign(newAssignment)
+      }
+      transactionsStore.update(txId, { ...applyBillLink(bill), paycheckId: undefined, plannerMonth: month })
     } else {
       transactionsStore.update(txId, { billId: undefined, type: "expense" })
+    }
+  }
+
+  function linkLoan(txId: string, txDate: string, loanAccountId: string | undefined) {
+    // Remove any existing planner link for this transaction
+    plannerStore.clearTransactionLink(txId)
+
+    if (loanAccountId) {
+      const loan = $loanAccounts.find(l => l.id === loanAccountId)
+      if (!loan) return
+      const month = txDate.substring(0, 7)
+      const assignments = plannerStore.getForMonth(month)
+      const assignment = assignments.find(a => a.loanAccountId === loanAccountId)
+      if (assignment) {
+        plannerStore.linkTransaction(assignment.id, txId)
+      } else {
+        const newAssignment: PlannedPaymentAssignment = { id: crypto.randomUUID(), plannerMonth: month, loanAccountId, transactionId: txId }
+        plannerStore.assign(newAssignment)
+      }
+      transactionsStore.update(txId, { ...applyLoanLink(loan), paycheckId: undefined, plannerMonth: month })
+    } else {
+      transactionsStore.update(txId, { loanAccountId: undefined, type: "expense" })
     }
   }
 
@@ -209,6 +242,7 @@
     income: "text-emerald-400 bg-emerald-950/30 border-emerald-800/50",
     transfer: "text-blue-400 bg-blue-950/30 border-blue-800/50",
     bill_payment: "text-orange-400 bg-orange-950/30 border-orange-800/50",
+    loan_payment: "text-violet-400 bg-violet-950/30 border-violet-800/50",
   }
 
   const typeLabels: Record<string, string> = {
@@ -216,6 +250,7 @@
     income: "Income",
     transfer: "Transfer",
     bill_payment: "Bill",
+    loan_payment: "Loan",
   }
 
   let selectionMode = false
@@ -724,6 +759,21 @@
                         <option value="">— None —</option>
                         {#each sortedBills as bill}
                           <option value={bill.id}>{bill.name}</option>
+                        {/each}
+                      </select>
+                    </div>
+
+                    <!-- Loan -->
+                    <div class="flex items-center gap-3">
+                      <span class="w-28 flex-shrink-0 text-xs text-gray-500 uppercase tracking-wide">Loan</span>
+                      <select
+                        value={tx.loanAccountId ?? ""}
+                        on:change={e => linkLoan(tx.id, tx.date, e.currentTarget.value || undefined)}
+                        class="text-sm bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="">— None —</option>
+                        {#each sortedLoans as loan}
+                          <option value={loan.id}>{loan.name}</option>
                         {/each}
                       </select>
                     </div>

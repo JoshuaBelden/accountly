@@ -39,6 +39,8 @@
   let minimumPayment = (editAccount as LoanAccount)?.minimumPayment ?? 0
   let paymentDueDay = (editAccount as LoanAccount)?.paymentDueDay ?? 1
   let paymentFrequency: LoanFrequency = (editAccount as LoanAccount)?.paymentFrequency ?? "monthly"
+  let loanPaymentAccountId = (editAccount as LoanAccount)?.paymentAccountId ?? ""
+  let loanHints = (editAccount as LoanAccount)?.hints ?? ""
 
   // Asset specific
   let assetSubtype: AssetSubtype = (editAccount as AssetAccount)?.assetSubtype ?? "other"
@@ -97,6 +99,8 @@
           minimumPayment,
           paymentDueDay,
           paymentFrequency,
+          paymentAccountId: loanPaymentAccountId || undefined,
+          hints: loanHints || undefined,
         } as LoanAccount
         break
       case "asset":
@@ -261,6 +265,34 @@
             </select>
           </div>
         {/if}
+      </div>
+    {/if}
+
+    {#if type === "loan"}
+      <div>
+        <label class="label" for="loan-account">Pay From Account (optional)</label>
+        <select id="loan-account" class="input" bind:value={loanPaymentAccountId}>
+          <option value="">Not specified</option>
+          {#each $accountsStore as acct}
+            {#if acct.type === "checking" || acct.type === "savings"}
+              <option value={acct.id}>{acct.name}</option>
+            {/if}
+          {/each}
+        </select>
+      </div>
+
+      <div>
+        <label class="label" for="loan-hints">Import Match Pattern (optional)</label>
+        <input
+          id="loan-hints"
+          class="input font-mono text-sm"
+          type="text"
+          bind:value={loanHints}
+          placeholder="e.g. driveway finance|auto loan"
+        />
+        <p class="mt-1 text-xs text-gray-500">
+          Regex matched against imported transaction descriptions to auto-resolve this loan's payment.
+        </p>
       </div>
     {/if}
 

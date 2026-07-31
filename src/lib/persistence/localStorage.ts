@@ -6,7 +6,7 @@ import type {
   Merchant,
   MonthlyBudgetOverride,
   Paycheck,
-  PlannedBillAssignment,
+  PlannedPaymentAssignment,
   Transaction,
 } from "$lib/types"
 import type { TaxProfile, WithholdingEntry } from "$lib/types/tax"
@@ -24,7 +24,7 @@ export interface ExportEnvelope {
   transactions: Transaction[]
   budgetCategories: BudgetCategory[]
   budgetOverrides: MonthlyBudgetOverride[]
-  plannerAssignments: PlannedBillAssignment[]
+  plannerAssignments: PlannedPaymentAssignment[]
   merchants: Merchant[]
   settings: AppSettings
   taxProfile?: TaxProfile | null
@@ -64,7 +64,7 @@ export function exportAllData(
   transactions: Transaction[],
   budgetCategories: BudgetCategory[],
   budgetOverrides: MonthlyBudgetOverride[],
-  plannerAssignments: PlannedBillAssignment[],
+  plannerAssignments: PlannedPaymentAssignment[],
   merchants: Merchant[],
   settings: AppSettings,
   taxProfile?: TaxProfile | null,

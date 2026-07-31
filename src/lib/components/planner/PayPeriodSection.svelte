@@ -1,17 +1,23 @@
 <script lang="ts">
-  import BillRow from "$lib/components/planner/BillRow.svelte"
   import IncomeRow from "$lib/components/planner/IncomeRow.svelte"
-  import type { PlannedBillAssignment, Transaction } from "$lib/types"
+  import PaymentRow from "$lib/components/planner/PaymentRow.svelte"
+  import type { PlannedPaymentAssignment, Transaction } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
   import type { PayPeriodBucket } from "$lib/utils/planner"
 
   export let bucket: PayPeriodBucket
   export let plannerMonth: string
-  export let monthAssignments: PlannedBillAssignment[]
+  export let monthAssignments: PlannedPaymentAssignment[]
   export let monthTransactions: Transaction[]
 
-  $: clearedBillTotal = bucket.bills.filter(item => item.isPaid).reduce((sum, item) => sum + item.amount, 0)
-  $: unclearedBillTotal = bucket.bills.filter(item => !item.isPaid).reduce((sum, item) => sum + item.amount, 0)
+  $: clearedPaymentTotal = bucket.payments.filter(item => item.isPaid).reduce((sum, item) => sum + item.amount, 0)
+  $: unclearedPaymentTotal = bucket.payments.filter(item => !item.isPaid).reduce((sum, item) => sum + item.amount, 0)
+
+  function findAssignment(item: PayPeriodBucket["payments"][number]) {
+    return (
+      monthAssignments.find(a => (item.kind === "bill" ? a.billId === item.id : a.loanAccountId === item.id)) ?? null
+    )
+  }
 </script>
 
 <div class="card">
@@ -23,12 +29,12 @@
       <span class="w-28 text-right tabular-nums text-emerald-400">+{formatCurrency(bucket.income)}</span>
     </div>
     <div class="flex items-center text-sm">
-      <span class="flex-1 text-gray-400">Bills cleared</span>
-      <span class="w-28 text-right tabular-nums text-red-400">-{formatCurrency(clearedBillTotal)}</span>
+      <span class="flex-1 text-gray-400">Bills & loans cleared</span>
+      <span class="w-28 text-right tabular-nums text-red-400">-{formatCurrency(clearedPaymentTotal)}</span>
     </div>
     <div class="flex items-center text-sm">
-      <span class="flex-1 text-gray-400">Bills not cleared</span>
-      <span class="w-28 text-right tabular-nums text-red-400">-{formatCurrency(unclearedBillTotal)}</span>
+      <span class="flex-1 text-gray-400">Bills & loans not cleared</span>
+      <span class="w-28 text-right tabular-nums text-red-400">-{formatCurrency(unclearedPaymentTotal)}</span>
     </div>
     <div class="flex items-center text-sm font-semibold border-t border-gray-700 pt-2">
       <span class="flex-1 text-gray-200">Net</span>
@@ -47,14 +53,14 @@
     </div>
   {/if}
 
-  <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Bills</h3>
-  {#if bucket.bills.length > 0}
+  <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Bills & Loans</h3>
+  {#if bucket.payments.length > 0}
     <div class="space-y-0.5">
-      {#each bucket.bills as item (item.bill.id)}
-        <BillRow bill={item.bill} assignment={monthAssignments.find(a => a.billId === item.bill.id) ?? null} {plannerMonth} />
+      {#each bucket.payments as item (`${item.kind}-${item.id}`)}
+        <PaymentRow kind={item.kind} source={item.source} assignment={findAssignment(item)} {plannerMonth} />
       {/each}
     </div>
   {:else}
-    <p class="text-xs text-gray-600">No bills due in this window.</p>
+    <p class="text-xs text-gray-600">No bills or loan payments due in this window.</p>
   {/if}
 </div>

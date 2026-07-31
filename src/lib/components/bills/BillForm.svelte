@@ -1,8 +1,7 @@
 <script lang="ts">
   import { accountsStore } from "$lib/stores/accounts.store"
   import { billsStore } from "$lib/stores/bills.store"
-  import { budgetStore } from "$lib/stores/budget.store"
-  import type { Bill, BillFrequency, BudgetCategory } from "$lib/types"
+  import type { Bill, BillFrequency } from "$lib/types"
   import { createEventDispatcher } from "svelte"
 
   export let editBill: Bill | null = null
@@ -15,8 +14,6 @@
   let dueDayOfMonth = editBill?.dueDayOfMonth ?? 1
   let autoPay = editBill?.autoPay ?? false
   let accountId = editBill?.accountId ?? ""
-  let categoryId = editBill?.categoryId ?? ""
-  let subcategoryId = editBill?.subcategoryId ?? ""
   let hints = editBill?.hints ?? ""
   let isSubscription = editBill?.isSubscription ?? false
   let isStreamingService = editBill?.isStreamingService ?? false
@@ -29,16 +26,6 @@
     return crypto.randomUUID()
   }
 
-  let budgetCategories: BudgetCategory[] = []
-  budgetStore.categories.subscribe(
-    (c: BudgetCategory[]) => (budgetCategories = c.slice().sort((a, b) => a.name.localeCompare(b.name))),
-  )
-
-  // Subcategories for selected category
-  $: subcategories = (budgetCategories.find(c => c.id === categoryId)?.subcategories ?? [])
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name))
-
   function submit() {
     const bill: Bill = {
       id: editBill?.id ?? uid(),
@@ -48,8 +35,6 @@
       dueDayOfMonth: ["monthly", "quarterly", "annually"].includes(frequency) ? dueDayOfMonth : undefined,
       autoPay,
       accountId: accountId || undefined,
-      categoryId: categoryId || undefined,
-      subcategoryId: subcategoryId || undefined,
       hints: hints || undefined,
       isSubscription: isSubscription || undefined,
       isStreamingService: isStreamingService || undefined,
@@ -108,31 +93,6 @@
         {/if}
       {/each}
     </select>
-  </div>
-
-  <div class="grid grid-cols-2 gap-4">
-    <div>
-      <label class="label" for="bill-category">Budget Category (optional)</label>
-      <select id="bill-category" class="input" bind:value={categoryId} on:change={() => (subcategoryId = "")}>
-        <option value="">None</option>
-        {#if budgetCategories}
-          {#each budgetCategories as cat}
-            <option value={cat.id}>{cat.name}</option>
-          {/each}
-        {/if}
-      </select>
-    </div>
-    {#if subcategories.length > 0}
-      <div>
-        <label class="label" for="bill-subcategory">Subcategory (optional)</label>
-        <select id="bill-subcategory" class="input" bind:value={subcategoryId}>
-          <option value="">None</option>
-          {#each subcategories as sub}
-            <option value={sub.id}>{sub.name}</option>
-          {/each}
-        </select>
-      </div>
-    {/if}
   </div>
 
   <div class="space-y-2">

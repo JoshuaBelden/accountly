@@ -1,4 +1,4 @@
-export type TransactionType = "expense" | "income" | "transfer" | "bill_payment"
+export type TransactionType = "expense" | "income" | "transfer" | "bill_payment" | "loan_payment"
 export type ClearedStatus = "pending" | "cleared" | "void"
 
 export interface TransactionSplit {
@@ -20,6 +20,7 @@ export interface Transaction {
   subcategoryId?: string
   splits?: TransactionSplit[]
   billId?: string
+  loanAccountId?: string
   paycheckId?: string
   plannedPaycheckDate?: string
   plannerMonth?: string

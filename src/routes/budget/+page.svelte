@@ -6,9 +6,11 @@
   import Modal from "$lib/components/shared/Modal.svelte"
   import { budgetStore } from "$lib/stores/budget.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
-  import type { BudgetCategory, Transaction } from "$lib/types"
+  import type { BudgetCategory, MonthlyBudgetOverride } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
   import { addMonths, currentMonth, formatMonth } from "$lib/utils/date"
+  import { matchCategoryByHints } from "$lib/utils/hintMatching"
+  import { categorySpend, computeBudgetTotal } from "$lib/utils/planner"
   import { get } from "svelte/store"
   import { page } from "$app/stores"
   import { onMount } from "svelte"
@@ -33,7 +35,9 @@
   let editCategory: BudgetCategory | null = null
 
   let categories: BudgetCategory[] = []
+  let overrides: MonthlyBudgetOverride[] = []
   budgetStore.categories.subscribe((c: BudgetCategory[]) => (categories = c))
+  budgetStore.overrides.subscribe((o: MonthlyBudgetOverride[]) => (overrides = o))
 
   function prevMonth() {
     month = addMonths(month, -1)
@@ -44,44 +48,9 @@
 
   $: monthTransactions = $transactionsStore.filter(t => t.plannerMonth === month || t.date.startsWith(month))
 
-  function getActualForCategory(cat: BudgetCategory, transactions: Transaction[]): number {
-    return transactions
-      .filter(t => {
-        if (t.splits?.length) return t.splits.some(s => s.categoryId === cat.id)
-        return t.categoryId === cat.id
-      })
-      .reduce((sum, t) => {
-        const sign = t.type === "income" ? -1 : 1
-        if (t.splits?.length) {
-          return sum + sign * t.splits.filter(s => s.categoryId === cat.id).reduce((ss, s) => ss + s.amount, 0)
-        }
-        return sum + sign * t.amount
-      }, 0)
-  }
-
-  function getActualForSubcategory(categoryId: string, subcategoryId: string, transactions: Transaction[]): number {
-    return transactions
-      .filter(t => {
-        if (t.splits?.length) return t.splits.some(s => s.categoryId === categoryId && s.subcategoryId === subcategoryId)
-        return t.categoryId === categoryId && t.subcategoryId === subcategoryId
-      })
-      .reduce((sum, t) => {
-        const sign = t.type === "income" ? -1 : 1
-        if (t.splits?.length) {
-          return (
-            sum +
-            sign *
-              t.splits
-                .filter(s => s.categoryId === categoryId && s.subcategoryId === subcategoryId)
-                .reduce((ss, s) => ss + s.amount, 0)
-          )
-        }
-        return sum + sign * t.amount
-      }, 0)
-  }
-
-  $: totalBudget = categories.reduce((s, c) => s + c.monthlyBudget, 0)
-  $: totalActual = categories.reduce((sum, cat) => sum + getActualForCategory(cat, monthTransactions), 0)
+  // Total across every category/subcategory, with month overrides applied.
+  $: totalBudget = computeBudgetTotal(categories, overrides, month)
+  $: totalActual = categories.reduce((sum, cat) => sum + categorySpend(monthTransactions, cat.id), 0)
   $: totalIncome = monthTransactions.filter(t => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
   $: unbudgeted = totalIncome - totalBudget
 
@@ -95,12 +64,12 @@
   $: topOverages = (() => {
     const items: OverageItem[] = []
     for (const cat of categories) {
-      const actual = getActualForCategory(cat, monthTransactions)
+      const actual = categorySpend(monthTransactions, cat.id)
       if (actual > cat.monthlyBudget) {
         items.push({ label: cat.name, overage: actual - cat.monthlyBudget, categoryId: cat.id })
       }
       for (const sub of cat.subcategories) {
-        const subActual = getActualForSubcategory(cat.id, sub.id, monthTransactions)
+        const subActual = categorySpend(monthTransactions, cat.id, sub.id)
         if (subActual > sub.monthlyBudget) {
           items.push({
             label: `${cat.name} › ${sub.name}`,
@@ -119,7 +88,7 @@
       const colors = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16"]
       return {
         label: cat.name,
-        amount: getActualForCategory(cat, monthTransactions),
+        amount: categorySpend(monthTransactions, cat.id),
         color: colors[i % colors.length],
       }
     })
@@ -146,32 +115,12 @@
 
   let reapplyResult: string | null = null
 
-  function matchCategory(description: string): { categoryId: string; subcategoryId?: string } | undefined {
-    for (const cat of categories) {
-      for (const sub of cat.subcategories) {
-        if (!sub.hints) continue
-        try {
-          if (new RegExp(sub.hints, "i").test(description)) return { categoryId: cat.id, subcategoryId: sub.id }
-        } catch {
-          /* invalid regex — skip */
-        }
-      }
-      if (!cat.hints) continue
-      try {
-        if (new RegExp(cat.hints, "i").test(description)) return { categoryId: cat.id }
-      } catch {
-        /* invalid regex — skip */
-      }
-    }
-    return undefined
-  }
-
   function reapplyHints() {
     const txs = get(transactionsStore)
     let updated = 0
     for (const tx of txs) {
-      if (tx.categoryId || !tx.description) continue
-      const match = matchCategory(tx.description)
+      if (tx.categoryId || !tx.description || tx.type === "bill_payment" || tx.type === "loan_payment") continue
+      const match = matchCategoryByHints(tx.description, categories)
       if (match) {
         transactionsStore.update(tx.id, { categoryId: match.categoryId, subcategoryId: match.subcategoryId })
         updated++
@@ -295,7 +244,7 @@
           <p class="text-sm text-gray-500 text-center py-8">No categories match "{filterQuery}"</p>
         {:else}
           {#each visibleCategories as cat (cat.id)}
-            <CategoryGroup category={cat} {monthTransactions} {month} on:edit={openEdit} on:delete={handleDelete} />
+            <CategoryGroup category={cat} {monthTransactions} {month} {overrides} on:edit={openEdit} on:delete={handleDelete} />
           {/each}
         {/if}
       </div>

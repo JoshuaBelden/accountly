@@ -51,6 +51,10 @@ export interface LoanAccount extends BaseAccount {
   minimumPayment: number
   paymentDueDay: number
   paymentFrequency: LoanFrequency
+  /** Account payments are drawn from, restricted to checking/savings accounts. */
+  paymentAccountId?: string
+  /** Regex matched against imported transaction descriptions to auto-identify payments on this loan. */
+  hints?: string
 }
 
 export interface AssetAccount extends BaseAccount {

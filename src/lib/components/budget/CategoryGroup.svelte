@@ -1,13 +1,15 @@
 <script lang="ts">
   import HoldToDelete from "$lib/components/shared/HoldToDelete.svelte"
-  import type { BudgetCategory, Transaction } from "$lib/types"
+  import type { BudgetCategory, MonthlyBudgetOverride, Transaction } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
+  import { categorySpend, effectiveBudgetAmount } from "$lib/utils/planner"
   import { createEventDispatcher, onMount } from "svelte"
   import BudgetVsActualBar from "./BudgetVsActualBar.svelte"
 
   export let category: BudgetCategory
   export let monthTransactions: Transaction[]
   export let month: string = ""
+  export let overrides: MonthlyBudgetOverride[] = []
 
   const dispatch = createEventDispatcher()
 
@@ -40,33 +42,8 @@
     saveExpandedSet(set)
   }
 
-  function getActual(categoryId: string, subcategoryId: string | undefined, transactions: Transaction[]): number {
-    return transactions
-      .filter(t => {
-        if (t.splits && t.splits.length > 0) {
-          return t.splits.some(
-            s => s.categoryId === categoryId && (subcategoryId ? s.subcategoryId === subcategoryId : true),
-          )
-        }
-        return t.categoryId === categoryId && (subcategoryId ? t.subcategoryId === subcategoryId : true)
-      })
-      .reduce((sum, t) => {
-        const sign = t.type === "income" ? -1 : 1
-        if (t.splits && t.splits.length > 0) {
-          return (
-            sum +
-            sign *
-              t.splits
-                .filter(s => s.categoryId === categoryId && (subcategoryId ? s.subcategoryId === subcategoryId : true))
-                .reduce((ss, s) => ss + s.amount, 0)
-          )
-        }
-        return sum + sign * t.amount
-      }, 0)
-  }
-
-  $: categoryActual = getActual(category.id, undefined, monthTransactions)
-  $: categoryBudget = category.monthlyBudget
+  $: categoryActual = categorySpend(monthTransactions, category.id)
+  $: categoryBudget = effectiveBudgetAmount(overrides, category.id, undefined, category.monthlyBudget, month)
   $: over = categoryActual > categoryBudget
 </script>
 
@@ -128,7 +105,8 @@
   {#if expanded && category.subcategories.length > 0}
     <div class="mt-3 pl-4 border-l border-gray-700 space-y-2">
       {#each category.subcategories.slice().sort((a, b) => a.name.localeCompare(b.name)) as sub (sub.id)}
-        {@const subActual = getActual(category.id, sub.id, monthTransactions)}
+        {@const subActual = categorySpend(monthTransactions, category.id, sub.id)}
+        {@const subBudget = effectiveBudgetAmount(overrides, category.id, sub.id, sub.monthlyBudget, month)}
         <div class="space-y-1">
           <div class="flex items-center justify-between text-sm">
             <a
@@ -136,14 +114,12 @@
               class="text-gray-400 hover:text-indigo-300 transition-colors">{sub.name}</a
             >
             <div class="flex gap-2 tabular-nums">
-              <span class={subActual > sub.monthlyBudget ? "text-red-400" : "text-gray-300"}
-                >{formatCurrency(subActual)}</span
-              >
+              <span class={subActual > subBudget ? "text-red-400" : "text-gray-300"}>{formatCurrency(subActual)}</span>
               <span class="text-gray-600">/</span>
-              <span class="text-gray-500">{formatCurrency(sub.monthlyBudget)}</span>
+              <span class="text-gray-500">{formatCurrency(subBudget)}</span>
             </div>
           </div>
-          <BudgetVsActualBar budget={sub.monthlyBudget} actual={subActual} />
+          <BudgetVsActualBar budget={subBudget} actual={subActual} />
         </div>
       {/each}
     </div>

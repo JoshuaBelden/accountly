@@ -7,7 +7,6 @@
 
   export let bill: Bill
   export let accountName = ""
-  export let categoryName = ""
 
   const dispatch = createEventDispatcher()
 
@@ -62,9 +61,6 @@
         {/if}
         {#if accountName}
           <span class="text-xs text-gray-500">· {accountName}</span>
-        {/if}
-        {#if categoryName}
-          <span class="text-xs text-gray-500">· {categoryName}</span>
         {/if}
       </div>
     </div>

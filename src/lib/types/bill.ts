@@ -9,8 +9,6 @@ export interface Bill {
   dueWeekday?: number
   autoPay: boolean
   accountId?: string
-  categoryId?: string
-  subcategoryId?: string
   hints?: string
   /** Whether this bill is a recurring subscription service. */
   isSubscription?: boolean

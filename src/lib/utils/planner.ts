@@ -1,7 +1,7 @@
-import type { Bill, BudgetCategory, MonthlyBudgetOverride, Paycheck, Transaction } from "$lib/types"
+import type { Bill, BudgetCategory, LoanAccount, MonthlyBudgetOverride, Paycheck, PlannedPaymentAssignment, Transaction } from "$lib/types"
 import { addMonths, daysInMonth, formatDateShort, getPayDaysInMonth, isoDate } from "$lib/utils/date"
 
-function effectiveBudgetAmount(
+export function effectiveBudgetAmount(
   overrides: MonthlyBudgetOverride[],
   categoryId: string,
   subcategoryId: string | undefined,
@@ -12,8 +12,49 @@ function effectiveBudgetAmount(
   return override?.budgetAmount ?? defaultAmount
 }
 
-export interface PayPeriodBillItem {
-  bill: Bill
+export interface ResolvedPaymentStatus {
+  transaction: Transaction | null
+  clearedByImport: boolean
+  manuallyPaid: boolean
+  isPaid: boolean
+  amount: number
+}
+
+/**
+ * Single source of truth for "is this bill/loan payment paid" — trusts the assignment's linked
+ * transaction first, and falls back to scanning transactions directly by source id + cleared status
+ * when no assignment (or no linked transaction) exists yet.
+ */
+export function resolvePaymentStatus(
+  sourceId: string,
+  matchField: "billId" | "loanAccountId",
+  defaultAmount: number,
+  assignment: PlannedPaymentAssignment | null,
+  transactions: Transaction[],
+  plannerMonth: string,
+): ResolvedPaymentStatus {
+  const transaction =
+    (assignment?.transactionId
+      ? transactions.find(t => t.id === assignment.transactionId)
+      : transactions.find(
+          t =>
+            t[matchField] === sourceId &&
+            t.clearedStatus === "cleared" &&
+            (t.plannerMonth === plannerMonth || t.date.startsWith(plannerMonth)),
+        )) ?? null
+  const clearedByImport = transaction?.clearedStatus === "cleared"
+  const manuallyPaid = !clearedByImport && assignment?.manuallyPaid === true
+  const isPaid = clearedByImport || manuallyPaid
+  const amount = clearedByImport && transaction ? transaction.amount : (assignment?.overrideAmount ?? defaultAmount)
+  return { transaction, clearedByImport, manuallyPaid, isPaid, amount }
+}
+
+export interface PayPeriodPaymentItem {
+  id: string
+  name: string
+  dueDayOfMonth?: number
+  kind: "bill" | "loan"
+  source: Bill | LoanAccount
   isPaid: boolean
   amount: number
 }
@@ -29,8 +70,8 @@ export interface PayPeriodBucket {
   date: string | null
   incomeItems: PayPeriodIncomeItem[]
   income: number
-  bills: PayPeriodBillItem[]
-  billTotal: number
+  payments: PayPeriodPaymentItem[]
+  paymentTotal: number
   net: number
 }
 
@@ -41,16 +82,16 @@ function dayBefore(iso: string): string {
 }
 
 /**
- * Groups income and monthly bill items into buckets anchored to "paycheck" type pay periods only.
- * "Other" income (e.g. rental income) still contributes to whichever bucket window it falls in,
- * but never creates its own bucket boundary — bills only ever split against real paychecks. The
- * last pay period of the month wraps to the day before next month's first paycheck, rather than
- * cutting off at the end of the calendar month.
+ * Groups income and monthly bill/loan payment items into buckets anchored to "paycheck" type pay
+ * periods only. "Other" income (e.g. rental income) still contributes to whichever bucket window it
+ * falls in, but never creates its own bucket boundary — payments only ever split against real
+ * paychecks. The last pay period of the month wraps to the day before next month's first paycheck,
+ * rather than cutting off at the end of the calendar month.
  */
-export function groupBillsByPayPeriod(
+export function groupPaymentsByPayPeriod(
   paychecks: Paycheck[],
   incomeItems: PayPeriodIncomeItem[],
-  billItems: PayPeriodBillItem[],
+  paymentItems: PayPeriodPaymentItem[],
   month: string,
 ): PayPeriodBucket[] {
   const paycheckSources = paychecks.filter(paycheck => (paycheck.incomeType ?? "paycheck") === "paycheck")
@@ -74,14 +115,14 @@ export function groupBillsByPayPeriod(
       date: period.date,
       incomeItems: [],
       income: 0,
-      bills: [],
-      billTotal: 0,
+      payments: [],
+      paymentTotal: 0,
       net: 0,
     }
   })
 
-  const beforeFirstBucket: PayPeriodBucket = { label: "Before first paycheck", date: null, incomeItems: [], income: 0, bills: [], billTotal: 0, net: 0 }
-  const unscheduledBucket: PayPeriodBucket = { label: "No due date set", date: null, incomeItems: [], income: 0, bills: [], billTotal: 0, net: 0 }
+  const beforeFirstBucket: PayPeriodBucket = { label: "Before first paycheck", date: null, incomeItems: [], income: 0, payments: [], paymentTotal: 0, net: 0 }
+  const unscheduledBucket: PayPeriodBucket = { label: "No due date set", date: null, incomeItems: [], income: 0, payments: [], paymentTotal: 0, net: 0 }
 
   function findBucketForDate(date: string): PayPeriodBucket | null {
     return [...buckets].reverse().find(bucket => bucket.date !== null && bucket.date <= date) ?? null
@@ -92,56 +133,47 @@ export function groupBillsByPayPeriod(
     bucket.incomeItems.push(item)
   }
 
-  for (const item of billItems) {
-    if (item.bill.dueDayOfMonth == null) {
-      unscheduledBucket.bills.push(item)
+  for (const item of paymentItems) {
+    if (item.dueDayOfMonth == null) {
+      unscheduledBucket.payments.push(item)
       continue
     }
-    const dueDate = `${month}-${String(item.bill.dueDayOfMonth).padStart(2, "0")}`
+    const dueDate = `${month}-${String(item.dueDayOfMonth).padStart(2, "0")}`
     const bucket = findBucketForDate(dueDate) ?? beforeFirstBucket
-    bucket.bills.push(item)
+    bucket.payments.push(item)
   }
 
   const allBuckets = [
-    ...(beforeFirstBucket.incomeItems.length > 0 || beforeFirstBucket.bills.length > 0 ? [beforeFirstBucket] : []),
+    ...(beforeFirstBucket.incomeItems.length > 0 || beforeFirstBucket.payments.length > 0 ? [beforeFirstBucket] : []),
     ...buckets,
-    ...(unscheduledBucket.bills.length > 0 ? [unscheduledBucket] : []),
+    ...(unscheduledBucket.payments.length > 0 ? [unscheduledBucket] : []),
   ]
 
   for (const bucket of allBuckets) {
     bucket.income = bucket.incomeItems.reduce((sum, item) => sum + item.amount, 0)
-    bucket.billTotal = bucket.bills.reduce((sum, item) => sum + item.amount, 0)
-    bucket.net = bucket.income - bucket.billTotal
+    bucket.paymentTotal = bucket.payments.reduce((sum, item) => sum + item.amount, 0)
+    bucket.net = bucket.income - bucket.paymentTotal
   }
 
   return allBuckets
 }
 
 /**
- * Sums budgeted amounts for categories/subcategories not already covered by a Bill, so committed
- * Bills and planned discretionary Budget spending are never double-counted in a forecast. Applies
- * a month-specific override amount in place of the default when one exists.
+ * Sums every category/subcategory's budgeted amount, applying a month-specific override in place of
+ * the default when one exists. Bills and loans never carry a budget category, so budget spending and
+ * committed bill/loan payments are naturally distinct — nothing here is excluded on their account.
  */
-export function computeDiscretionaryBudget(
-  bills: Bill[],
-  categories: BudgetCategory[],
-  overrides: MonthlyBudgetOverride[],
-  month: string,
-): number {
-  const billedSubcategoryIds = new Set(bills.filter(bill => bill.subcategoryId).map(bill => bill.subcategoryId as string))
-  const billedCategoryIds = new Set(bills.filter(bill => bill.categoryId && !bill.subcategoryId).map(bill => bill.categoryId as string))
-
+export function computeBudgetTotal(categories: BudgetCategory[], overrides: MonthlyBudgetOverride[], month: string): number {
   return categories.reduce((sum, category) => {
     if (category.subcategories.length === 0) {
-      if (billedCategoryIds.has(category.id)) return sum
       return sum + effectiveBudgetAmount(overrides, category.id, undefined, category.monthlyBudget, month)
     }
     return (
       sum +
-      category.subcategories.reduce((subSum, sub) => {
-        if (billedSubcategoryIds.has(sub.id)) return subSum
-        return subSum + effectiveBudgetAmount(overrides, category.id, sub.id, sub.monthlyBudget, month)
-      }, 0)
+      category.subcategories.reduce(
+        (subSum, sub) => subSum + effectiveBudgetAmount(overrides, category.id, sub.id, sub.monthlyBudget, month),
+        0,
+      )
     )
   }, 0)
 }
@@ -162,9 +194,14 @@ export interface CategorySpendingGroup {
   subcategories: CategorySpendingLine[]
 }
 
-function clearedSpendFor(transactions: Transaction[], categoryId: string, subcategoryId?: string): number {
+/**
+ * Sums cleared spend for a budget category/subcategory. Excludes income and any transaction already
+ * tracked as a bill or loan payment, so committed bills/loans are never double-counted as budget
+ * category spend even if the bill happens to carry the same category for organizational purposes.
+ */
+export function categorySpend(transactions: Transaction[], categoryId: string, subcategoryId?: string): number {
   return transactions
-    .filter(t => t.type !== "income" && t.clearedStatus === "cleared")
+    .filter(t => t.type !== "income" && t.type !== "bill_payment" && t.type !== "loan_payment" && t.clearedStatus === "cleared")
     .reduce((sum, t) => {
       if (t.splits?.length) {
         const matching = t.splits.filter(s => s.categoryId === categoryId && (!subcategoryId || s.subcategoryId === subcategoryId))
@@ -190,7 +227,7 @@ export function computeCategorySpendingGroups(
         categoryId: category.id,
         label: category.name,
         budgeted: effectiveBudgetAmount(overrides, category.id, undefined, category.monthlyBudget, month),
-        cleared: clearedSpendFor(transactions, category.id),
+        cleared: categorySpend(transactions, category.id),
         subcategories: [],
       }
     }
@@ -202,14 +239,14 @@ export function computeCategorySpendingGroups(
         subcategoryId: sub.id,
         label: sub.name,
         budgeted: effectiveBudgetAmount(overrides, category.id, sub.id, sub.monthlyBudget, month),
-        cleared: clearedSpendFor(transactions, category.id, sub.id),
+        cleared: categorySpend(transactions, category.id, sub.id),
       }))
 
     return {
       categoryId: category.id,
       label: category.name,
       budgeted: subcategories.reduce((sum, line) => sum + line.budgeted, 0),
-      cleared: clearedSpendFor(transactions, category.id),
+      cleared: categorySpend(transactions, category.id),
       subcategories,
     }
   })

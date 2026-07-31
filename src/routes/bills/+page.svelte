@@ -3,13 +3,13 @@
   import BillForm from "$lib/components/bills/BillForm.svelte"
   import EmptyState from "$lib/components/shared/EmptyState.svelte"
   import Modal from "$lib/components/shared/Modal.svelte"
-  import { accountsStore } from "$lib/stores/accounts.store"
+  import { accountsStore, loanAccounts } from "$lib/stores/accounts.store"
   import { billsStore } from "$lib/stores/bills.store"
-  import { budgetStore } from "$lib/stores/budget.store"
   import { plannerStore } from "$lib/stores/planner.store"
   import { transactionsStore } from "$lib/stores/transactions.store"
-  import type { Bill, BudgetCategory } from "$lib/types"
+  import type { Bill, PlannedPaymentAssignment } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
+  import { applyBillLink, applyLoanLink, matchBillByHints, matchLoanByHints } from "$lib/utils/hintMatching"
   import { get } from "svelte/store"
   import { page } from "$app/stores"
   import { onMount } from "svelte"
@@ -22,8 +22,6 @@
 
   let modalOpen = false
   let editBill: Bill | null = null
-  let categories: BudgetCategory[] = []
-  budgetStore.categories.subscribe(c => (categories = c))
 
   function openAdd() {
     editBill = null
@@ -49,40 +47,33 @@
     return $accountsStore.find(a => a.id === id)?.name ?? ""
   }
 
-  function getCategoryName(id?: string) {
-    if (!id) return ""
-    return categories.find(c => c.id === id)?.name ?? ""
-  }
-
   let reapplyResult: string | null = null
 
   function reapplyHints() {
     const txs = get(transactionsStore)
     const bills = get(billsStore)
+    const loans = get(loanAccounts)
     let updated = 0
     for (const tx of txs) {
-      if (tx.billId || !tx.description) continue
-      for (const bill of bills) {
-        if (!bill.hints) continue
-        try {
-          if (new RegExp(bill.hints, "i").test(tx.description)) {
-            plannerStore.clearTransactionLink(tx.id)
-            const month = tx.date.substring(0, 7)
-            const assignments = plannerStore.getForMonth(month)
-            const assignment = assignments.find(a => a.billId === bill.id)
-            if (assignment) plannerStore.linkTransaction(assignment.id, tx.id)
-            transactionsStore.update(tx.id, {
-              billId: bill.id,
-              type: "bill_payment",
-              plannerMonth: month,
-            })
-            updated++
-            break
-          }
-        } catch {
-          /* invalid regex — skip */
-        }
+      if (tx.billId || tx.loanAccountId || !tx.description) continue
+      const bill = matchBillByHints(tx.description, bills)
+      const loan = !bill ? matchLoanByHints(tx.description, loans) : undefined
+      if (!bill && !loan) continue
+
+      const month = tx.date.substring(0, 7)
+      plannerStore.clearTransactionLink(tx.id)
+      const assignments = plannerStore.getForMonth(month)
+      const assignment = assignments.find(a => (bill ? a.billId === bill.id : a.loanAccountId === loan!.id))
+      if (assignment) {
+        plannerStore.linkTransaction(assignment.id, tx.id)
+      } else {
+        const newAssignment: PlannedPaymentAssignment = bill
+          ? { id: crypto.randomUUID(), plannerMonth: month, billId: bill.id, transactionId: tx.id }
+          : { id: crypto.randomUUID(), plannerMonth: month, loanAccountId: loan!.id, transactionId: tx.id }
+        plannerStore.assign(newAssignment)
       }
+      transactionsStore.update(tx.id, { ...(bill ? applyBillLink(bill) : applyLoanLink(loan!)), plannerMonth: month })
+      updated++
     }
     reapplyResult =
       updated === 0
@@ -182,7 +173,6 @@
           <BillCard
             {bill}
             accountName={getAccountName(bill.accountId)}
-            categoryName={getCategoryName(bill.categoryId)}
             on:edit={openEdit}
             on:delete={handleDelete}
           />

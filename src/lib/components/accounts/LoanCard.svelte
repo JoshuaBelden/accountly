@@ -2,6 +2,7 @@
   import Badge from "$lib/components/shared/Badge.svelte"
   import HoldToDelete from "$lib/components/shared/HoldToDelete.svelte"
   import type { LoanAccount } from "$lib/types"
+  import { accountsStore } from "$lib/stores/accounts.store"
   import { formatCurrency } from "$lib/utils/currency"
   import { loanPayoffDate, loanProgress } from "$lib/utils/finance"
   import { createEventDispatcher } from "svelte"
@@ -9,6 +10,8 @@
   export let loan: LoanAccount
 
   const dispatch = createEventDispatcher()
+
+  $: paymentAccountName = loan.paymentAccountId ? $accountsStore.find(a => a.id === loan.paymentAccountId)?.name : ""
 
   $: progress = loanProgress(loan) * 100
   $: payoffDate = loanPayoffDate(loan)
@@ -76,5 +79,8 @@
 
   <div class="text-xs text-gray-500">
     Due day: {loan.paymentDueDay} · {(loan.interestRate * 100).toFixed(2)}% APR · {loan.paymentFrequency}
+    {#if paymentAccountName}
+      · Pay from: {paymentAccountName}
+    {/if}
   </div>
 </div>
