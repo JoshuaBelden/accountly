@@ -9,3 +9,4 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .claude/settings.local.json
+scripts/backups/

@@ -19,26 +19,29 @@
   $: displayAmount = isReceived && paycheckTx ? paycheckTx.amount : paycheck.expectedAmount
 </script>
 
-<div class="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-800/50 transition-colors">
-  <div class="flex flex-col">
-    <div class="text-xs text-gray-500 uppercase tracking-wide">{isOtherIncome ? "Other Income" : "Paycheck"}</div>
-    <div class="font-semibold text-gray-100">{paycheck.name}</div>
-    <div class="text-sm text-indigo-300">{formatDateShort(paycheckDate)}</div>
-  </div>
-
-  <div class="flex flex-col items-end gap-1">
-    <div class="text-sm text-emerald-400 font-medium">+{formatCurrency(displayAmount)}</div>
+<div
+  class="flex items-center gap-3 py-2 px-3 rounded-lg {isReceived ? 'bg-emerald-950/30' : 'hover:bg-gray-800/50'} transition-colors"
+>
+  <div
+    class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center {isReceived
+      ? 'bg-emerald-500 border-emerald-500'
+      : 'border-gray-600'}"
+    title={isReceived ? "Received" : "Not received"}
+  >
     {#if isReceived}
-      <span
-        class="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-400 border border-emerald-700/50"
-      >
-        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-        </svg>
-        Received
-      </span>
-    {:else}
-      <span class="text-xs text-gray-600">Not received</span>
+      <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+      </svg>
     {/if}
   </div>
+
+  <div class="flex-1 min-w-0">
+    <span class="text-sm {isReceived ? 'text-gray-200' : 'text-gray-300'} truncate">{paycheck.name}</span>
+    <span class="text-xs text-gray-600 ml-1">{formatDateShort(paycheckDate)}</span>
+    {#if isOtherIncome}
+      <span class="text-xs text-gray-600 ml-1">other income</span>
+    {/if}
+  </div>
+
+  <span class="text-sm tabular-nums text-right w-24 text-emerald-400">+{formatCurrency(displayAmount)}</span>
 </div>

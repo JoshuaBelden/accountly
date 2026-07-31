@@ -1,7 +1,6 @@
 <script lang="ts">
-  import SpendingChart from "$lib/components/budget/SpendingChart.svelte"
-  import BillRow from "$lib/components/planner/BillRow.svelte"
-  import IncomeRow from "$lib/components/planner/IncomeRow.svelte"
+  import CategorySpendingRow from "$lib/components/planner/CategorySpendingRow.svelte"
+  import PayPeriodSection from "$lib/components/planner/PayPeriodSection.svelte"
   import EmptyState from "$lib/components/shared/EmptyState.svelte"
   import { billsStore } from "$lib/stores/bills.store"
   import { budgetStore } from "$lib/stores/budget.store"
@@ -11,6 +10,7 @@
   import type { BudgetCategory, MonthlyBudgetOverride } from "$lib/types"
   import { formatCurrency } from "$lib/utils/currency"
   import { addMonths, currentMonth, formatMonth, getPayDaysInMonth } from "$lib/utils/date"
+  import { computeCategorySpendingGroups, computeDiscretionaryBudget, groupBillsByPayPeriod } from "$lib/utils/planner"
 
   let month = currentMonth()
 
@@ -70,34 +70,31 @@
     return { bill, isPaid, amount }
   })
   $: totalBills = billItems.reduce((sum, item) => sum + item.amount, 0)
-  $: netCashFlow = totalIncome - totalBills
 
-  // Budget categories for spending chart
+  // Bills grouped by which paycheck actually covers them, so shortfalls within the month are visible
+  $: payPeriodBuckets = groupBillsByPayPeriod($paychecksStore, incomeItems, billItems, month)
+
+  // Budget categories, for the discretionary portion of the spending forecast
   let categories: BudgetCategory[] = []
   let overrides: MonthlyBudgetOverride[] = []
   budgetStore.categories.subscribe((c: BudgetCategory[]) => (categories = c))
   budgetStore.overrides.subscribe((o: MonthlyBudgetOverride[]) => (overrides = o))
 
-  $: chartTransactions = $transactionsStore.filter(t => t.plannerMonth === month || t.date.startsWith(month))
+  // Planned discretionary spending — budgeted categories/subcategories not already covered by a Bill
+  $: discretionaryBudgetTotal = computeDiscretionaryBudget($billsStore, categories, overrides, month)
 
-  $: chartData = categories
-    .map((cat, i) => {
-      const colors = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16"]
-      const amount = chartTransactions
-        .filter(t => {
-          if (t.type === "income") return false
-          if (t.splits?.length) return t.splits.some(s => s.categoryId === cat.id)
-          return t.categoryId === cat.id
-        })
-        .reduce((sum, t) => {
-          if (t.splits?.length) {
-            return sum + t.splits.filter(s => s.categoryId === cat.id).reduce((ss, s) => ss + s.amount, 0)
-          }
-          return sum + t.amount
-        }, 0)
-      return { label: cat.name, amount, color: colors[i % colors.length] }
-    })
-    .filter(d => d.amount > 0)
+  $: netCashFlow = totalIncome - totalBills - discretionaryBudgetTotal
+
+  // Transactions with no category and no splits — the "holes" that weren't planned for at all
+  $: uncategorizedTransactions = monthTransactions
+    .filter(t => t.type !== "income" && !t.categoryId && !t.splits?.length)
+    .sort((a, b) => b.date.localeCompare(a.date))
+  $: uncategorizedSpend = uncategorizedTransactions.reduce((sum, t) => sum + t.amount, 0)
+
+  $: forecastNet = totalIncome - totalBills - discretionaryBudgetTotal - uncategorizedSpend
+
+  // Every budget category with its subcategories' cleared spend so far this month, for the watch-list below the header
+  $: categorySpendingGroups = computeCategorySpendingGroups(categories, monthTransactions, overrides, month)
 </script>
 
 <div class="max-w-7xl mx-auto space-y-6">
@@ -134,6 +131,10 @@
           <span class="flex-1 text-gray-400">Total Bills</span>
           <span class="w-32 text-right tabular-nums text-red-400">-{formatCurrency(totalBills)}</span>
         </div>
+        <div class="flex items-center text-sm">
+          <span class="flex-1 text-gray-400">Total Budgeted</span>
+          <span class="w-32 text-right tabular-nums text-amber-400">-{formatCurrency(discretionaryBudgetTotal)}</span>
+        </div>
         <div class="flex items-center text-sm font-semibold border-t border-gray-700 pt-3">
           <span class="flex-1 text-gray-200">Net</span>
           <span class="w-32 text-right tabular-nums {netCashFlow >= 0 ? 'text-emerald-400' : 'text-red-400'}">
@@ -143,50 +144,73 @@
       </div>
     </div>
 
-    <!-- Income section -->
-    <div class="card">
-      <h2 class="text-sm font-semibold text-gray-300 mb-3">Income</h2>
-      {#if payPeriods.length === 0}
+    <!-- Income and Bills, split by pay period -->
+    {#if payPeriodBuckets.length === 0}
+      <div class="card">
         <p class="text-sm text-gray-500">No pay days found in {formatMonth(month)}.</p>
-      {:else}
-        <div class="divide-y divide-gray-700/50">
-          {#each payPeriods as { paycheck, date } (`${paycheck.id}-${date}`)}
-            <IncomeRow {paycheck} paycheckDate={date} {monthTransactions} />
-          {/each}
-        </div>
-        <div class="flex items-center text-sm font-medium border-t border-gray-700 pt-3 mt-3">
-          <span class="flex-1 text-gray-300">Total Income</span>
-          <span class="w-32 text-right tabular-nums text-emerald-400">+{formatCurrency(totalIncome)}</span>
-        </div>
-      {/if}
-    </div>
+      </div>
+    {:else}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {#each payPeriodBuckets as bucket (bucket.label + (bucket.date ?? ""))}
+          <PayPeriodSection {bucket} plannerMonth={month} {monthAssignments} {monthTransactions} />
+        {/each}
+      </div>
+    {/if}
 
-    <!-- Bills section -->
+    <!-- Spending Forecast -->
     <div class="card">
-      <h2 class="text-sm font-semibold text-gray-300 mb-3">Bills</h2>
-      {#if monthlyBills.length === 0}
-        <p class="text-sm text-gray-500">No monthly bills configured.</p>
-      {:else}
-        <div class="space-y-0.5">
-          {#each monthlyBills as bill (bill.id)}
-            <BillRow
-              {bill}
-              assignment={monthAssignments.find(a => a.billId === bill.id) ?? null}
-              plannerMonth={month}
-            />
+      <h3 class="text-sm font-semibold text-gray-300 mb-4">Spending Forecast — {formatMonth(month)}</h3>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Income</div>
+          <div class="text-lg font-bold text-emerald-400 tabular-nums">+{formatCurrency(totalIncome)}</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Bills</div>
+          <div class="text-lg font-bold text-red-400 tabular-nums">-{formatCurrency(totalBills)}</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Budgeted</div>
+          <div class="text-lg font-bold text-amber-400 tabular-nums">-{formatCurrency(discretionaryBudgetTotal)}</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Uncategorized</div>
+          <div class="text-lg font-bold text-orange-400 tabular-nums">-{formatCurrency(uncategorizedSpend)}</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Forecast Net</div>
+          <div class="text-lg font-bold tabular-nums {forecastNet >= 0 ? 'text-emerald-400' : 'text-red-400'}">
+            {formatCurrency(forecastNet)}
+          </div>
+        </div>
+      </div>
+
+      {#if categorySpendingGroups.length > 0}
+        <div class="mt-5 pt-4 border-t border-gray-700 space-y-3">
+          {#each categorySpendingGroups as group (group.categoryId)}
+            <CategorySpendingRow {group} {month} />
           {/each}
         </div>
-        <div class="flex items-center text-sm font-medium border-t border-gray-700 pt-3 mt-3">
-          <span class="flex-1 text-gray-300">Total Bills</span>
-          <span class="w-32 text-right tabular-nums text-red-400">-{formatCurrency(totalBills)}</span>
+      {/if}
+
+      {#if uncategorizedTransactions.length > 0}
+        <div class="mt-5 pt-4 border-t border-gray-700">
+          <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Uncategorized Transactions</h4>
+          <div class="space-y-1.5">
+            {#each uncategorizedTransactions as transaction (transaction.id)}
+              <div class="flex items-center justify-between text-sm">
+                <a
+                  href="/transactions?uncategorized=true&month={month}&q={encodeURIComponent(transaction.description)}"
+                  class="text-gray-400 hover:text-indigo-300 transition-colors truncate mr-2"
+                >
+                  {transaction.description}
+                </a>
+                <span class="text-red-400 tabular-nums flex-shrink-0">{formatCurrency(transaction.amount)}</span>
+              </div>
+            {/each}
+          </div>
         </div>
       {/if}
-    </div>
-
-    <!-- Spending Breakdown -->
-    <div class="card max-w-[50%]">
-      <h3 class="text-sm font-semibold text-gray-300 mb-4">Spending Breakdown</h3>
-      <SpendingChart data={chartData} horizontal />
     </div>
   {/if}
 </div>
