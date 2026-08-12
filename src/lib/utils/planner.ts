@@ -150,6 +150,7 @@ export function groupPaymentsByPayPeriod(
   ]
 
   for (const bucket of allBuckets) {
+    bucket.payments.sort((a, b) => (a.dueDayOfMonth ?? 99) - (b.dueDayOfMonth ?? 99))
     bucket.income = bucket.incomeItems.reduce((sum, item) => sum + item.amount, 0)
     bucket.paymentTotal = bucket.payments.reduce((sum, item) => sum + item.amount, 0)
     bucket.net = bucket.income - bucket.paymentTotal

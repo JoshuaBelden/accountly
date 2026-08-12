@@ -10,8 +10,7 @@
   export let monthAssignments: PlannedPaymentAssignment[]
   export let monthTransactions: Transaction[]
 
-  $: clearedPaymentTotal = bucket.payments.filter(item => item.isPaid).reduce((sum, item) => sum + item.amount, 0)
-  $: unclearedPaymentTotal = bucket.payments.filter(item => !item.isPaid).reduce((sum, item) => sum + item.amount, 0)
+  $: paymentTotal = bucket.payments.reduce((sum, item) => sum + item.amount, 0)
 
   function findAssignment(item: PayPeriodBucket["payments"][number]) {
     return (
@@ -29,12 +28,8 @@
       <span class="w-28 text-right tabular-nums text-emerald-400">+{formatCurrency(bucket.income)}</span>
     </div>
     <div class="flex items-center text-sm">
-      <span class="flex-1 text-gray-400">Bills & loans cleared</span>
-      <span class="w-28 text-right tabular-nums text-red-400">-{formatCurrency(clearedPaymentTotal)}</span>
-    </div>
-    <div class="flex items-center text-sm">
-      <span class="flex-1 text-gray-400">Bills & loans not cleared</span>
-      <span class="w-28 text-right tabular-nums text-red-400">-{formatCurrency(unclearedPaymentTotal)}</span>
+      <span class="flex-1 text-gray-400">Bills & loans</span>
+      <span class="w-28 text-right tabular-nums text-red-400">-{formatCurrency(paymentTotal)}</span>
     </div>
     <div class="flex items-center text-sm font-semibold border-t border-gray-700 pt-2">
       <span class="flex-1 text-gray-200">Net</span>
