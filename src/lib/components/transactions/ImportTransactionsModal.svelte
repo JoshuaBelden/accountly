@@ -16,7 +16,7 @@
     type ParsedCsvRow,
   } from "$lib/utils/csvImport"
   import { formatCurrency } from "$lib/utils/currency"
-  import { findMatchingPayDate, formatDateShort, todayISO } from "$lib/utils/date"
+  import { findMatchingPayDate, formatDateShort } from "$lib/utils/date"
   import { applyBillLink, applyLoanLink, matchBillByHints, matchCategoryByHints, matchLoanByHints, matchMerchantByHints, matchPaycheckByHints } from "$lib/utils/hintMatching"
   import { createEventDispatcher } from "svelte"
   import { get } from "svelte/store"
@@ -71,10 +71,7 @@
   $: selectedCount = selected.filter(Boolean).length
   $: duplicateCount = parsedRows.filter(r => r.isDuplicate).length
   $: allSelected = selected.length > 0 && selected.every(Boolean)
-  $: balanceUpdate =
-    parsedRows.length > 0 && parsedRows[0].date === todayISO() && parsedRows[0].balance > 0
-      ? parsedRows[0].balance
-      : null
+  $: balanceUpdate = parsedRows.length > 0 && parsedRows[0].hasBalance ? parsedRows[0].balance : null
 
   function reset() {
     step = "upload"
@@ -627,8 +624,9 @@
               clip-rule="evenodd"
             />
           </svg>
-          Most recent transaction is from today — account balance will be updated to
-          <span class="font-medium text-indigo-200">{formatCurrency(balanceUpdate)}</span>.
+          Account balance will be updated to
+          <span class="font-medium text-indigo-200">{formatCurrency(balanceUpdate)}</span>
+          based on the most recent transaction.
         </div>
       {/if}
 
@@ -758,11 +756,15 @@
       <button
         type="button"
         class="btn-primary"
-        disabled={selectedCount === 0 || !selectedAccountId}
+        disabled={(selectedCount === 0 && balanceUpdate === null) || !selectedAccountId}
         on:click={importSelected}
       >
-        Import {selectedCount}
-        {selectedCount === 1 ? "transaction" : "transactions"}
+        {#if selectedCount === 0}
+          Update Balance
+        {:else}
+          Import {selectedCount}
+          {selectedCount === 1 ? "transaction" : "transactions"}
+        {/if}
       </button>
     {/if}
   </svelte:fragment>

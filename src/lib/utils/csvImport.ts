@@ -7,6 +7,7 @@ export interface ParsedCsvRow {
   rawType: "Debit" | "Credit"
   amount: number
   balance: number
+  hasBalance: boolean
 }
 
 function parseCSVLine(line: string): string[] {
@@ -164,13 +165,16 @@ export function parseCsvWithFormat(text: string, format: CsvFormat): ParsedCsvRo
       continue
     }
 
+    const parsedBalance = balanceIndex >= 0 ? parseFloat(cols[balanceIndex] ?? "") : NaN
+
     rows.push({
       accountNumber: cols[0] ?? "",
       description: cols[descIndex] ?? "",
       date,
       rawType,
       amount,
-      balance: balanceIndex >= 0 ? parseFloat(cols[balanceIndex] || "0") || 0 : 0,
+      balance: isNaN(parsedBalance) ? 0 : parsedBalance,
+      hasBalance: !isNaN(parsedBalance),
     })
   }
 
