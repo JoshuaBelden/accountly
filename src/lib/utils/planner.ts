@@ -86,7 +86,8 @@ function dayBefore(iso: string): string {
  * periods only. "Other" income (e.g. rental income) still contributes to whichever bucket window it
  * falls in, but never creates its own bucket boundary — payments only ever split against real
  * paychecks. The last pay period of the month wraps to the day before next month's first paycheck,
- * rather than cutting off at the end of the calendar month.
+ * rather than cutting off at the end of the calendar month. Items with a date before the first
+ * paycheck of the month fall into that first bucket rather than a separate one.
  */
 export function groupPaymentsByPayPeriod(
   paychecks: Paycheck[],
@@ -121,16 +122,15 @@ export function groupPaymentsByPayPeriod(
     }
   })
 
-  const beforeFirstBucket: PayPeriodBucket = { label: "Before first paycheck", date: null, incomeItems: [], income: 0, payments: [], paymentTotal: 0, net: 0 }
   const unscheduledBucket: PayPeriodBucket = { label: "No due date set", date: null, incomeItems: [], income: 0, payments: [], paymentTotal: 0, net: 0 }
 
   function findBucketForDate(date: string): PayPeriodBucket | null {
-    return [...buckets].reverse().find(bucket => bucket.date !== null && bucket.date <= date) ?? null
+    return [...buckets].reverse().find(bucket => bucket.date !== null && bucket.date <= date) ?? buckets[0] ?? null
   }
 
   for (const item of incomeItems) {
-    const bucket = findBucketForDate(item.date) ?? beforeFirstBucket
-    bucket.incomeItems.push(item)
+    const bucket = findBucketForDate(item.date)
+    if (bucket) bucket.incomeItems.push(item)
   }
 
   for (const item of paymentItems) {
@@ -139,15 +139,11 @@ export function groupPaymentsByPayPeriod(
       continue
     }
     const dueDate = `${month}-${String(item.dueDayOfMonth).padStart(2, "0")}`
-    const bucket = findBucketForDate(dueDate) ?? beforeFirstBucket
-    bucket.payments.push(item)
+    const bucket = findBucketForDate(dueDate)
+    if (bucket) bucket.payments.push(item)
   }
 
-  const allBuckets = [
-    ...(beforeFirstBucket.incomeItems.length > 0 || beforeFirstBucket.payments.length > 0 ? [beforeFirstBucket] : []),
-    ...buckets,
-    ...(unscheduledBucket.payments.length > 0 ? [unscheduledBucket] : []),
-  ]
+  const allBuckets = [...buckets, ...(unscheduledBucket.payments.length > 0 ? [unscheduledBucket] : [])]
 
   for (const bucket of allBuckets) {
     bucket.payments.sort((a, b) => (a.dueDayOfMonth ?? 99) - (b.dueDayOfMonth ?? 99))
